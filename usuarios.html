@@ -386,9 +386,14 @@ async function saveUser() {
       const newUid = authData?.user?.id;
       if (!newUid) throw new Error('No se obtuvo el ID del nuevo usuario. Puede que el correo ya exista.');
 
-      // 2. Insertar perfil en mql_usuarios
-      const { error: dbErr } = await sb.from('mql_usuarios')
-        .insert({ id: newUid, email, nombre, cd: cd || null, rol, activo: true });
+      // 2. Insertar perfil via función SECURITY DEFINER (bypasea RLS correctamente)
+      const { error: dbErr } = await sb.rpc('mql_crear_perfil_usuario', {
+        p_id:     newUid,
+        p_email:  email,
+        p_nombre: nombre,
+        p_cd:     cd || '',
+        p_rol:    rol
+      });
       if (dbErr) throw new Error('Usuario creado en Auth pero error en perfil: ' + dbErr.message);
     }
 
