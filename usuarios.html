@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MaquiLog · Gestión de Usuarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060e1a;--surf:#0d1829;--surf2:#132035;--surf3:#192840;
+  --bord:rgba(255,255,255,0.06);--bord2:rgba(255,255,255,0.12);
+  --accent:#3b82f6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --text:#f0f4ff;--text2:#8899b5;--text3:#3d5070;--r:12px;
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{
+  background:rgba(6,14,26,0.9);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--bord);padding:0 24px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-size:18px;font-weight:700;letter-spacing:-0.5px}
+.logo span{color:var(--accent)}
+.back-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surf2);border:1px solid var(--bord2);border-radius:8px;
+  padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;
+  text-decoration:none;transition:.2s;font-family:inherit;
+}
+.back-btn:hover{color:var(--text);border-color:var(--accent)}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:32px 24px}
+.page-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+
+/* TOP BAR */
+.top-bar{display:flex;gap:12px;margin-bottom:20px;align-items:center}
+.search-box{
+  flex:1;background:var(--surf);border:1px solid var(--bord2);border-radius:8px;
+  padding:9px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;
+}
+.search-box:focus{border-color:var(--accent)}
+.btn{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:9px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+  transition:.2s;white-space:nowrap;
+}
+.btn:hover{background:#2563eb}
+.btn-ghost{background:var(--surf2);color:var(--text2);border:1px solid var(--bord2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent)}
+
+/* TABLE */
+.table-wrap{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text2);padding:12px 16px;text-align:left;
+  background:var(--surf2);border-bottom:1px solid var(--bord);
+}
+tbody tr{border-bottom:1px solid var(--bord);transition:.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surf2)}
+td{padding:12px 16px;font-size:13px;color:var(--text)}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2)}
+.badge{
+  display:inline-block;border-radius:4px;padding:2px 8px;
+  font-size:11px;font-family:'IBM Plex Mono',monospace;
+}
+.badge-admin{background:rgba(139,92,246,.2);color:var(--purple)}
+.badge-op{background:rgba(59,130,246,.15);color:var(--accent)}
+.badge-on{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-off{background:rgba(239,68,68,.1);color:var(--red)}
+.action-btn{
+  background:none;border:1px solid var(--bord2);border-radius:6px;
+  padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;
+  font-family:inherit;transition:.2s;margin-right:4px;
+}
+.action-btn:hover{color:var(--text);border-color:var(--accent)}
+.action-btn.danger:hover{color:var(--red);border-color:var(--red)}
+#loading-row td{color:var(--text2);text-align:center;padding:32px}
+
+/* MODAL */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-backdrop.hidden{display:none}
+.modal{
+  background:var(--surf);border:1px solid var(--bord2);border-radius:16px;
+  padding:28px;width:420px;max-width:95vw;
+}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--text2);display:block;margin-bottom:6px}
+.form-input,.form-select{
+  width:100%;background:var(--surf2);border:1px solid var(--bord2);
+  border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;
+  font-family:inherit;outline:none;
+}
+.form-input:focus,.form-select:focus{border-color:var(--accent)}
+.form-select option{background:var(--surf2)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.modal-err{color:var(--red);font-size:12px;margin-top:10px}
+
+/* CD selector — mostrar solo si operador */
+#cd-row{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Maqui<span>Log</span> <span style="color:var(--text3);font-size:13px;font-weight:400">· Usuarios</span></div>
+  <a class="back-btn" href="index.html">← Volver al inicio</a>
+</header>
+
+<main>
+  <div class="page-title">👥 Gestión de Usuarios</div>
+  <div class="page-sub">Administra los accesos al sistema MaquiLog</div>
+
+  <div class="top-bar">
+    <input class="search-box" id="search" placeholder="Buscar por nombre o correo…" oninput="filterTable()">
+    <button class="btn" onclick="openModal()">+ Nuevo usuario</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Rol</th>
+          <th>CD asignado</th>
+          <th>Estado</th>
+          <th>Último acceso</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr id="loading-row"><td colspan="7">Cargando usuarios…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- MODAL NUEVO / EDITAR USUARIO -->
+<div class="modal-backdrop hidden" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Nuevo usuario</div>
+
+    <div class="form-group">
+      <label class="form-label">Nombre completo</label>
+      <input class="form-input" id="f-nombre" type="text" placeholder="Ej: Juan Jara">
+    </div>
+    <div class="form-group" id="email-row">
+      <label class="form-label">Correo corporativo</label>
+      <input class="form-input" id="f-email" type="email" placeholder="usuario@tasa.com.pe">
+    </div>
+    <div class="form-group" id="pass-row">
+      <label class="form-label">Contraseña inicial</label>
+      <input class="form-input" id="f-pass" type="password" placeholder="Mín. 8 caracteres">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rol</label>
+      <select class="form-select" id="f-rol" onchange="toggleCd()">
+        <option value="operador">Operador</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="form-group" id="cd-row">
+      <label class="form-label">CD asignado</label>
+      <select class="form-select" id="f-cd">
+        <option value="Callao">Callao</option>
+        <option value="Pisco">Pisco</option>
+        <option value="Matarani">Matarani</option>
+        <option value="Pucusana">Pucusana</option>
+        <option value="Vegueta">Vegueta</option>
+        <option value="Malabrigo">Malabrigo</option>
+        <option value="Chimbote">Chimbote</option>
+        <option value="Pacifico Centro">Pacífico Centro</option>
+      </select>
+    </div>
+
+    <div class="modal-err" id="modal-err"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="save-btn" onclick="saveUser()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE — service key (para admin CRUD de usuarios)
+// NOTA: usar service key solo en página admin-only
+// ═══════════════════════════════════════════════
+const SB_URL  = 'https://njmswjinwrcxsfduchsc.supabase.co';
+const SB_KEY  = 'sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J'; // anon key (lectura)
+// Para crear usuarios en Auth necesitamos la Admin API — se hace via Edge Function
+// Por ahora: solo gestión de perfiles en mql_usuarios (el admin crea user en Dashboard)
+
+const { createClient } = supabase;
+const sb = createClient(SB_URL, SB_KEY);
+
+// ═══════════════════════════════════════════════
+// AUTH CHECK — solo admin puede entrar
+// ═══════════════════════════════════════════════
+(async () => {
+  const cached = sessionStorage.getItem('mql_user');
+  if (!cached) { location.href = 'index.html'; return; }
+  const user = JSON.parse(cached);
+  if (user.rol !== 'admin') { location.href = 'index.html'; return; }
+
+  // Verificar sesión activa
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { sessionStorage.removeItem('mql_user'); location.href = 'index.html'; return; }
+
+  loadUsers();
+})();
+
+// ═══════════════════════════════════════════════
+// LOAD USERS  — usa la vista mql_v_usuarios
+// ═══════════════════════════════════════════════
+let allUsers = [];
+
+async function loadUsers() {
+  const { data, error } = await sb
+    .from('mql_v_usuarios')
+    .select('*')
+    .order('creado_en', { ascending: false });
+
+  if (error) {
+    // Si la vista no existe, fallback a la tabla
+    const { data: d2, error: e2 } = await sb.from('mql_usuarios').select('*').order('creado_en', {ascending:false});
+    if (e2) { document.getElementById('loading-row').cells[0].textContent = 'Error al cargar: ' + e2.message; return; }
+    allUsers = d2 || [];
+  } else {
+    allUsers = data || [];
+  }
+  renderTable(allUsers);
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById('tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:32px">Sin usuarios registrados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map(u => `
+    <tr data-id="${u.id}">
+      <td><strong>${esc(u.nombre || '—')}</strong></td>
+      <td class="mono">${esc(u.email)}</td>
+      <td><span class="badge ${u.rol==='admin'?'badge-admin':'badge-op'}">${u.rol}</span></td>
+      <td>${u.cd ? esc(u.cd) : '<span style="color:var(--text3)">Todos los CDs</span>'}</td>
+      <td><span class="badge ${u.activo?'badge-on':'badge-off'}">${u.activo?'Activo':'Inactivo'}</span></td>
+      <td class="mono" style="font-size:11px">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+      <td>
+        <button class="action-btn" onclick="editUser('${u.id}')">Editar</button>
+        <button class="action-btn danger" onclick="toggleActive('${u.id}', ${u.activo})">${u.activo?'Desactivar':'Activar'}</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  renderTable(allUsers.filter(u =>
+    (u.nombre||'').toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+  ));
+}
+
+function esc(s){ return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// ═══════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════
+let editingId = null;
+
+function openModal(user = null) {
+  editingId = user?.id || null;
+  document.getElementById('modal-title').textContent = user ? 'Editar usuario' : 'Nuevo usuario';
+  document.getElementById('f-nombre').value = user?.nombre || '';
+  document.getElementById('f-email').value  = user?.email  || '';
+  document.getElementById('f-pass').value   = '';
+  document.getElementById('f-rol').value    = user?.rol    || 'operador';
+  document.getElementById('f-cd').value     = user?.cd     || 'Callao';
+  document.getElementById('modal-err').textContent = '';
+
+  // Email y pass solo en nuevo
+  document.getElementById('email-row').style.display = user ? 'none' : 'block';
+  document.getElementById('pass-row').style.display  = user ? 'none' : 'block';
+
+  toggleCd();
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  editingId = null;
+}
+
+function editUser(id) {
+  const u = allUsers.find(u => u.id === id);
+  if (u) openModal(u);
+}
+
+function toggleCd() {
+  const rol = document.getElementById('f-rol').value;
+  document.getElementById('cd-row').style.display = rol === 'operador' ? 'block' : 'none';
+}
+
+async function saveUser() {
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const email  = document.getElementById('f-email').value.trim();
+  const pass   = document.getElementById('f-pass').value;
+  const rol    = document.getElementById('f-rol').value;
+  const cd     = rol === 'operador' ? document.getElementById('f-cd').value : null;
+  const errEl  = document.getElementById('modal-err');
+  const btn    = document.getElementById('save-btn');
+
+  if (!nombre) { errEl.textContent = 'El nombre es requerido'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  errEl.textContent = '';
+
+  try {
+    if (editingId) {
+      // EDITAR — solo actualiza nombre, rol, cd en mql_usuarios
+      const { error } = await sb.from('mql_usuarios')
+        .update({ nombre, rol, cd })
+        .eq('id', editingId);
+      if (error) throw error;
+
+    } else {
+      // NUEVO — instrucciones para admin
+      if (!email || !pass) throw new Error('Correo y contraseña son requeridos para nuevo usuario');
+      errEl.style.color = 'var(--amber)';
+      errEl.textContent = `⚠️ Para crear el usuario en Supabase Auth: ve a Authentication > Users > "Add user" con este correo y contraseña. Luego ejecuta en SQL Editor:\n\nINSERT INTO mql_usuarios (id, email, nombre, cd, rol) VALUES ('UUID_DEL_NUEVO_USUARIO', '${email}', '${nombre}', ${cd ? `'${cd}'` : 'NULL'}, '${rol}');`;
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+      return;
+    }
+
+    closeModal();
+    await loadUsers();
+
+  } catch(e) {
+    errEl.style.color = 'var(--red)';
+    errEl.textContent = e.message;
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+  }
+}
+
+async function toggleActive(id, currentlyActive) {
+  const action = currentlyActive ? 'desactivar' : 'activar';
+  if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} este usuario?`)) return;
+
+  const { error } = await sb.from('mql_usuarios')
+    .update({ activo: !currentlyActive })
+    .eq('id', id);
+
+  if (error) { alert('Error: ' + error.message); return; }
+  await loadUsers();
+}
+
+// Cerrar modal al click fuera
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
