@@ -632,6 +632,7 @@ function setTab(tab){
   document.getElementById("btn-operacion").classList.toggle("active", tab==="operacion");
   document.getElementById("btn-visibilidad").classList.toggle("active", tab==="visibilidad");
   if (tab==="visibilidad" && CONFIGURED) renderAll();
+  if (tab==="operacion") selectOp(selectedOp || "Ingreso");
 }
 
 /* ===== OPERACIÓN ===== */
@@ -778,17 +779,24 @@ async function renderAll(){
 
 async function count(filters={}){
   let q = sb.from("mnt_mantas").select("*",{count:"exact",head:true});
-  Object.entries(filters).forEach(([k,v])=> q=q.eq(k,v));
+  // Usar ilike para disponibilidad (BD guarda "Disponible", "En Uso", "Sucia" — capitalizado)
+  Object.entries(filters).forEach(([k,v])=> {
+    if (k==="disponibilidad") q=q.ilike(k,v);
+    else q=q.eq(k,v);
+  });
   const { count: c } = await q;
   return c||0;
 }
 
 async function renderKPIs(){
   const el = document.getElementById("kpis");
-  const [total,disp,uso,sucia] = await Promise.all([
-    count(), count({disponibilidad:"DISPONIBLE"}),
-    count({disponibilidad:"EN USO"}), count({disponibilidad:"SUCIA"})
-  ]);
+  // Usar la vista que ya agrupa disponibilidad correctamente
+  const { data, error } = await sb.from("mnt_v_stock_por_planta").select("total,disponibles,en_uso,sucias");
+  if (error || !data) { el.innerHTML = `<div class="empty">Error al cargar KPIs.</div>`; return; }
+  const total = data.reduce((a,r)=>a+(r.total||0),0);
+  const disp  = data.reduce((a,r)=>a+(r.disponibles||0),0);
+  const uso   = data.reduce((a,r)=>a+(r.en_uso||0),0);
+  const sucia = data.reduce((a,r)=>a+(r.sucias||0),0);
   el.innerHTML = `
     <div class="kpi"><div class="n">${total}</div><div class="l">Total en red</div></div>
     <div class="kpi g"><div class="n">${disp}</div><div class="l">Disponibles</div></div>
@@ -875,7 +883,7 @@ async function renderTable(){
   if (q)  query = query.ilike("id_manta",`%${q}%`);
   if (fp) query = query.eq("planta_actual",fp);
   if (ft) query = query.eq("tipo_manta",ft);
-  if (fe) query = query.eq("disponibilidad",fe);
+  if (fe) query = query.ilike("disponibilidad",fe);
   const { data, error } = await query;
   if (error||!data){ tb.innerHTML=`<tr><td colspan="5"><div class="empty">Error al consultar.</div></td></tr>`; return; }
   if (!data.length){ tb.innerHTML=`<tr><td colspan="5"><div class="empty">Sin resultados.</div></td></tr>`; return; }
