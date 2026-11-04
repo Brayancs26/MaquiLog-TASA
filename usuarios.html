@@ -124,7 +124,7 @@ td{padding:12px 16px;font-size:13px;color:var(--text)}
   <div class="page-sub">Administra los accesos al sistema MaquiLog</div>
 
   <div class="top-bar">
-    <input class="search-box" id="search" placeholder="Buscar por nombre o correo…" oninput="filterTable()">
+    <input class="search-box" id="search" placeholder="Buscar por nombre o correo…" oninput="filterTable()" autocomplete="off">
     <button class="btn" onclick="openModal()">+ Nuevo usuario</button>
   </div>
 
@@ -370,13 +370,24 @@ async function saveUser() {
       if (error) throw error;
 
     } else {
-      // NUEVO — instrucciones para admin
+      // NUEVO — crear en Auth + insertar en mql_usuarios
       if (!email || !pass) throw new Error('Correo y contraseña son requeridos para nuevo usuario');
-      errEl.style.color = 'var(--amber)';
-      errEl.textContent = `⚠️ Para crear el usuario en Supabase Auth: ve a Authentication > Users > "Add user" con este correo y contraseña. Luego ejecuta en SQL Editor:\n\nINSERT INTO mql_usuarios (id, email, nombre, cd, rol) VALUES ('UUID_DEL_NUEVO_USUARIO', '${email}', '${nombre}', ${cd ? `'${cd}'` : 'NULL'}, '${rol}');`;
-      btn.disabled = false;
-      btn.textContent = 'Guardar';
-      return;
+      if (pass.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
+
+      // 1. Crear cuenta en Supabase Auth
+      const { data: authData, error: authErr } = await sb.auth.signUp({
+        email,
+        password: pass,
+        options: { emailRedirectTo: null }
+      });
+      if (authErr) throw new Error('Error Auth: ' + authErr.message);
+      const newUid = authData?.user?.id;
+      if (!newUid) throw new Error('No se obtuvo el ID del nuevo usuario. Puede que el correo ya exista.');
+
+      // 2. Insertar perfil en mql_usuarios
+      const { error: dbErr } = await sb.from('mql_usuarios')
+        .insert({ id: newUid, email, nombre, cd: cd || null, rol, activo: true });
+      if (dbErr) throw new Error('Usuario creado en Auth pero error en perfil: ' + dbErr.message);
     }
 
     closeModal();
