@@ -513,18 +513,19 @@ function openModal(id){
       hist.map(r=>`<tr><td>${r.periodo||'—'}</td><td style="color:var(--text2)">${r.tipo_evento||'—'}</td><td>${fD(r.fecha_ejecutada)}</td><td><span class="adh ${adhCls(r.adherencia)}">${r.adherencia||'—'}</span></td></tr>`).join('')+'</tbody></table>';
   }else{hl.style.display='none';hc.innerHTML='';}
 
-  // ── BLOQUEO POR CD ───────────────────────────────────────────
+  setBtnLoading(false); // resetea btn PRIMERO
+
+  // ── BLOQUEO POR CD (siempre después de setBtnLoading) ───────
   const puedeEd = puedeEditar(c.centro);
   const btnGuardar = document.getElementById('btn-save');
   const tabEstado  = document.getElementById('tab-estado');
   const tabReg     = document.getElementById('tab-reg');
   if (!puedeEd) {
-    if(btnGuardar){btnGuardar.disabled=true;btnGuardar.style.opacity='0.4';btnGuardar.style.cursor='not-allowed';btnGuardar.title='No tienes permiso para editar este centro';}
+    if(btnGuardar){btnGuardar.disabled=true;btnGuardar.style.opacity='0.4';btnGuardar.style.cursor='not-allowed';btnGuardar.title='Sin permiso';}
     if(tabEstado){tabEstado.disabled=true;tabEstado.style.opacity='0.4';tabEstado.style.pointerEvents='none';}
     if(tabReg){tabReg.disabled=true;tabReg.style.opacity='0.4';tabReg.style.pointerEvents='none';}
-    const avisoId='cd-aviso-cont';
-    let aviso=document.getElementById(avisoId);
-    if(!aviso){aviso=document.createElement('div');aviso.id=avisoId;aviso.style.cssText='background:#1e1012;border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;';document.getElementById('m-info').before(aviso);}
+    let aviso=document.getElementById('cd-aviso-cont');
+    if(!aviso){aviso=document.createElement('div');aviso.id='cd-aviso-cont';aviso.style.cssText='background:#1e1012;border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;';document.getElementById('m-info').before(aviso);}
     aviso.textContent=`⚠ Solo puedes editar equipos de ${MQL_CD||'tu CD'}. Este equipo pertenece a ${c.centro||'otro CD'}.`;
     aviso.style.display='block';
   } else {
@@ -536,10 +537,9 @@ function openModal(id){
   }
 
   const ov = document.getElementById('overlay');
-  ov.style.display = '';  // restaurar display antes de abrir
+  ov.style.display = '';
   ov.classList.add('open');
   document.body.style.overflow='hidden';
-  setBtnLoading(false);
 }
 
 function setTab(tab){
