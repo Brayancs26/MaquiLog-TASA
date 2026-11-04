@@ -168,7 +168,7 @@ td{padding:12px 16px;font-size:13px;color:var(--text)}
     <div class="form-group">
       <label class="form-label">Rol</label>
       <select class="form-select" id="f-rol" onchange="toggleCd()">
-        <option value="operador">Operador</option>
+        <option value="operador">Personal</option>
         <option value="admin">Administrador</option>
       </select>
     </div>
@@ -252,7 +252,7 @@ function renderTable(users) {
     <tr data-id="${u.id}">
       <td><strong>${esc(u.nombre || '—')}</strong></td>
       <td class="mono">${esc(u.email)}</td>
-      <td><span class="badge ${u.rol==='admin'?'badge-admin':'badge-op'}">${u.rol}</span></td>
+      <td><span class="badge ${u.rol==='admin'?'badge-admin':'badge-op'}">${u.rol==='admin'?'Administrador':'Personal'}</span></td>
       <td>${u.cd ? esc(u.cd) : '<span style="color:var(--text3)">Todos los CDs</span>'}</td>
       <td><span class="badge ${u.activo?'badge-on':'badge-off'}">${u.activo?'Activo':'Inactivo'}</span></td>
       <td class="mono" style="font-size:11px">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
