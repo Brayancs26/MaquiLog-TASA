@@ -484,7 +484,7 @@ select{cursor:pointer;}
       </div>
     </div>
 
-    <p class="footnote" style="margin-top:24px;">Conectado en vivo a Supabase — tablas <span class="mono">mantas</span> y <span class="mono">movimientos_mantas</span>.</p>
+    <p class="footnote" style="margin-top:24px;">Conectado en vivo a Supabase MaquiLog-TASA — tablas <span class="mono">mnt_mantas</span> y <span class="mono">mnt_movimientos_mantas</span>.</p>
   </div>
 
 </main>
@@ -493,8 +493,8 @@ select{cursor:pointer;}
 
 <script>
 /* ===== CONFIGURACIÓN ===== */
-const SUPABASE_URL  = "https://whhdxoenojmzuobecavm.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaGR4b2Vub2ptenVvYmVjYXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDM4NDYsImV4cCI6MjEwMDQxOTg0Nn0.4cfQdy-w5MkYclDDHMD1muYQg6M93wgWgYm1DqSOpdo";
+const SUPABASE_URL  = "https://njmswjinwrcxsfduchsc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J";
 
 const CONFIGURED = SUPABASE_URL !== "SUPABASE_URL" && SUPABASE_ANON_KEY !== "SUPABASE_ANON_KEY";
 let sb = null;
@@ -588,11 +588,11 @@ async function boot(){
 async function loadAppData(){
   const pill = document.getElementById("status-pill");
   try {
-    const { data: p, error: e1 } = await sb.from("plantas").select("nombre,es_cd").order("nombre");
+    const { data: p, error: e1 } = await sb.from("mnt_plantas").select("nombre,es_cd").order("nombre");
     if (e1) throw e1;
     PLANTAS_ALL = p.map(r=>r.nombre);
     PLANTAS = p.filter(r=>r.es_cd).map(r=>r.nombre);
-    const { data: pv, error: e2 } = await sb.from("proveedores").select("codigo").order("codigo");
+    const { data: pv, error: e2 } = await sb.from("mnt_proveedores").select("codigo").order("codigo");
     if (e2) throw e2;
     PROVEEDORES = pv.map(r=>r.codigo);
     pill.textContent = PLANTAS.length + " CDs";
@@ -662,7 +662,7 @@ async function previewManta(id){
   const box = document.getElementById("manta-preview-box");
   const btn = document.getElementById("submit-btn");
   const hint = document.getElementById("scan-hint");
-  const { data, error } = await sb.from("mantas").select("*").eq("id_manta", id).maybeSingle();
+  const { data, error } = await sb.from("mnt_mantas").select("*").eq("id_manta", id).maybeSingle();
   if (error || !data){
     box.innerHTML=""; btn.disabled=true;
     hint.textContent="No se encontró ninguna manta con ese código.";
@@ -682,7 +682,7 @@ async function previewManta(id){
 async function randomScan(){
   const hint = document.getElementById("scan-hint");
   hint.textContent="Escaneando…";
-  const { data, error } = await sb.from("mantas").select("id_manta").limit(50);
+  const { data, error } = await sb.from("mnt_mantas").select("id_manta").limit(50);
   if (error || !data || !data.length){ hint.textContent="No se pudo leer la base."; return; }
   const pick = data[Math.floor(Math.random()*data.length)];
   document.getElementById("scan-input").value = pick.id_manta;
@@ -726,9 +726,9 @@ async function submitOp(){
     mov.estado_nuevo      = nuevoEstado;
   }
 
-  const { error: e1 } = await sb.from("mantas").update(update).eq("id_manta", id);
+  const { error: e1 } = await sb.from("mnt_mantas").update(update).eq("id_manta", id);
   if (e1){ toast("Error al actualizar: " + e1.message, true); btn.disabled=false; btn.textContent="Confirmar"; return; }
-  const { error: e2 } = await sb.from("movimientos_mantas").insert(mov);
+  const { error: e2 } = await sb.from("mnt_movimientos_mantas").insert(mov);
   if (e2) console.warn("Historial no registrado:", e2.message);
 
   toast(`${selectedOp} registrado para ${id}.`);
@@ -760,7 +760,7 @@ async function renderAll(){
 }
 
 async function count(filters={}){
-  let q = sb.from("mantas").select("*",{count:"exact",head:true});
+  let q = sb.from("mnt_mantas").select("*",{count:"exact",head:true});
   Object.entries(filters).forEach(([k,v])=> q=q.eq(k,v));
   const { count: c } = await q;
   return c||0;
@@ -782,7 +782,7 @@ async function renderKPIs(){
 
 async function renderCDGrid(){
   const el = document.getElementById("cd-grid");
-  const { data, error } = await sb.from("v_stock_por_planta").select("*").eq("es_cd",true).order("total",{ascending:false});
+  const { data, error } = await sb.from("mnt_v_stock_por_planta").select("*").eq("es_cd",true).order("total",{ascending:false});
   if (error||!data){ el.innerHTML=`<div class="empty">No se pudo cargar.</div>`; return; }
   const tot = data.reduce((a,r)=>a+r.total,0)||1;
   el.innerHTML = data.map(r=>{
@@ -801,7 +801,7 @@ async function renderCDGrid(){
 
 async function renderTipoGrid(){
   const el = document.getElementById("tipo-grid");
-  const { data, error } = await sb.from("v_stock_por_tipo").select("*").order("total",{ascending:false});
+  const { data, error } = await sb.from("mnt_v_stock_por_tipo").select("*").order("total",{ascending:false});
   if (error||!data){ el.innerHTML=`<div class="empty">No se pudo cargar.</div>`; return; }
   const tot = data.reduce((a,r)=>a+r.total,0)||1;
   el.innerHTML = data.map(r=>{
@@ -820,7 +820,7 @@ async function renderTipoGrid(){
 
 async function renderDetalle(){
   const table = document.getElementById("detalle-table");
-  const { data, error } = await sb.from("v_stock_por_planta_tipo").select("*").eq("es_cd",true);
+  const { data, error } = await sb.from("mnt_v_stock_por_planta_tipo").select("*").eq("es_cd",true);
   if (error||!data){ table.querySelector("tbody").innerHTML=`<tr><td><div class="empty">No se pudo cargar.</div></td></tr>`; return; }
   if (!data.length){ table.querySelector("tbody").innerHTML=`<tr><td><div class="empty">Sin datos.</div></td></tr>`; return; }
   const tipos = [...new Set(data.map(r=>r.tipo))].sort();
@@ -854,7 +854,7 @@ async function renderTable(){
   const fe = document.getElementById("f-estado").value;
   const tb = document.getElementById("table-body");
   tb.innerHTML=`<tr><td colspan="5"><div class="empty">Cargando…</div></td></tr>`;
-  let query = sb.from("mantas").select("id_manta,planta_actual,proveedor_codigo,tipo_manta,disponibilidad").limit(60);
+  let query = sb.from("mnt_mantas").select("id_manta,planta_actual,proveedor_codigo,tipo_manta,disponibilidad").limit(60);
   if (q)  query = query.ilike("id_manta",`%${q}%`);
   if (fp) query = query.eq("planta_actual",fp);
   if (ft) query = query.eq("tipo_manta",ft);
@@ -873,7 +873,7 @@ async function renderTable(){
 
 async function renderHistorial(){
   const el = document.getElementById("historial-card");
-  const { data, error } = await sb.from("movimientos_mantas")
+  const { data, error } = await sb.from("mnt_movimientos_mantas")
     .select("id_manta,tipo_movimiento,planta_origen,planta_destino,disponibilidad_nueva,creado_en")
     .order("creado_en",{ascending:false}).limit(8);
   if (error||!data){ el.innerHTML=`<div class="empty">Error al consultar.</div>`; return; }
@@ -892,9 +892,9 @@ async function renderAlertas(){
     {count:sinMov},
     {count:transito}
   ] = await Promise.all([
-    sb.from("mantas").select("planta_actual").eq("disponibilidad","SUCIA"),
-    sb.from("mantas").select("*",{count:"exact",head:true}).lt("actualizado_en",new Date(Date.now()-30*86400000).toISOString()),
-    sb.from("mantas").select("*",{count:"exact",head:true}).eq("planta_actual","En transito")
+    sb.from("mnt_mantas").select("planta_actual").eq("disponibilidad","SUCIA"),
+    sb.from("mnt_mantas").select("*",{count:"exact",head:true}).lt("actualizado_en",new Date(Date.now()-30*86400000).toISOString()),
+    sb.from("mnt_mantas").select("*",{count:"exact",head:true}).eq("planta_actual","En transito")
   ]);
   let html="";
   if (suciasData){
