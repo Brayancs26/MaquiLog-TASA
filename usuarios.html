@@ -216,7 +216,19 @@ const sb = createClient(SB_URL, SB_KEY);
   const user = JSON.parse(cached);
   if (user.rol !== 'admin') { location.href = 'index.html'; return; }
 
-  // Sin verificar getSession — se confía en sessionStorage (mismo criterio que mantasa)
+  // Restaurar sesión Supabase desde localStorage (guardada por index.html)
+  try {
+    const raw = localStorage.getItem('sb-njmswjinwrcxsfduchsc-auth-token');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const access_token  = parsed?.access_token  || parsed?.currentSession?.access_token;
+      const refresh_token = parsed?.refresh_token || parsed?.currentSession?.refresh_token;
+      if (access_token && refresh_token) {
+        await sb.auth.setSession({ access_token, refresh_token });
+      }
+    }
+  } catch(e) { console.warn('No se pudo restaurar sesión:', e.message); }
+
   loadUsers();
 })();
 
