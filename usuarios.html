@@ -376,7 +376,12 @@ async function saveUser() {
       if (!email || !pass) throw new Error('Correo y contraseña son requeridos para nuevo usuario');
       if (pass.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
 
-      // 1. Crear cuenta en Supabase Auth
+      // 1. Guardar sesión del admin ANTES de signUp (signUp la reemplaza)
+      const { data: adminSession } = await sb.auth.getSession();
+      const adminAccess  = adminSession?.session?.access_token;
+      const adminRefresh = adminSession?.session?.refresh_token;
+
+      // 2. Crear cuenta en Supabase Auth (esto loguea al nuevo usuario)
       const { data: authData, error: authErr } = await sb.auth.signUp({
         email,
         password: pass,
@@ -386,7 +391,12 @@ async function saveUser() {
       const newUid = authData?.user?.id;
       if (!newUid) throw new Error('No se obtuvo el ID del nuevo usuario. Puede que el correo ya exista.');
 
-      // 2. Insertar perfil via función SECURITY DEFINER (bypasea RLS correctamente)
+      // 3. Restaurar sesión del admin antes de insertar
+      if (adminAccess && adminRefresh) {
+        await sb.auth.setSession({ access_token: adminAccess, refresh_token: adminRefresh });
+      }
+
+      // 4. Insertar perfil via función SECURITY DEFINER (admin restaurado)
       const { error: dbErr } = await sb.rpc('mql_crear_perfil_usuario', {
         p_id:     newUid,
         p_email:  email,
