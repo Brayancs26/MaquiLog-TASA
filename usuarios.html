@@ -269,8 +269,8 @@ function renderTable(users) {
       <td><span class="badge ${u.activo?'badge-on':'badge-off'}">${u.activo?'Activo':'Inactivo'}</span></td>
       <td class="mono" style="font-size:11px">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
       <td>
-        <button class="action-btn" onclick="editUser('${u.id}')">Editar</button>
-        <button class="action-btn danger" onclick="toggleActive('${u.id}', ${u.activo})">${u.activo?'Desactivar':'Activar'}</button>
+        <button class="action-btn edit-btn" data-uid="${u.id}">Editar</button>
+        <button class="action-btn danger toggle-btn" data-uid="${u.id}" data-activo="${u.activo}">${u.activo?'Desactivar':'Activar'}</button>
       </td>
     </tr>
   `).join('');
@@ -282,6 +282,23 @@ function filterTable() {
     (u.nombre||'').toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
   ));
 }
+
+// Delegación de eventos en la tabla — evita problemas con onclick en strings de template
+document.getElementById('tbody').addEventListener('click', function(e) {
+  const editBtn   = e.target.closest('.edit-btn');
+  const toggleBtn = e.target.closest('.toggle-btn');
+  if (editBtn) {
+    const uid = editBtn.dataset.uid;
+    const u = allUsers.find(x => x.id === uid);
+    if (u) { openModal(u); }
+    else { console.error('editUser: no encontrado uid=', uid, 'allUsers=', allUsers.map(x=>x.id)); }
+  }
+  if (toggleBtn) {
+    const uid    = toggleBtn.dataset.uid;
+    const activo = toggleBtn.dataset.activo === 'true';
+    toggleActive(uid, activo);
+  }
+});
 
 function esc(s){ return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
