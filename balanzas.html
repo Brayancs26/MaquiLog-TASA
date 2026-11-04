@@ -329,6 +329,19 @@ const SUPA_URL='https://njmswjinwrcxsfduchsc.supabase.co';
 const SUPA_KEY='sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
+// ── CONTROL DE ACCESO POR CD ──────────────────────────────────
+const _mqlRaw = sessionStorage.getItem('mql_user');
+const MQL_USER = _mqlRaw ? JSON.parse(_mqlRaw) : null;
+const MQL_IS_ADMIN = MQL_USER && MQL_USER.rol === 'admin';
+const MQL_CD = MQL_USER ? (MQL_USER.cd || null) : null;
+
+// Devuelve true si el usuario puede editar la planta dada
+function puedeEditar(planta) {
+  if (MQL_IS_ADMIN) return true;
+  if (!MQL_CD || !planta) return false;
+  return planta.toUpperCase() === MQL_CD.toUpperCase();
+}
+
 let BZ=[],allCals=[],filtered=[],activeId=null,nuevoEstado=null,modoTab='estado';
 
 // ── HELPERS ──────────────────────────────────────────────────
@@ -493,6 +506,32 @@ async function openModal(id){
         <td><span class="adh-badge ${adhCls(c.adherencia||'—')}">${c.adherencia||'—'}</span></td>
       </tr>`).join('')+'</tbody></table>';
   }else{hl.style.display='none';hc.innerHTML='';}
+
+  // ── BLOQUEO POR CD ───────────────────────────────────────────
+  const puedeEd = puedeEditar(b.planta);
+  const btnGuardar = document.getElementById('btn-guardar');
+  const tabEstado  = document.getElementById('tab-estado');
+  const tabCal     = document.getElementById('tab-cal');
+  if (!puedeEd) {
+    btnGuardar.disabled = true;
+    btnGuardar.title = 'No tienes permiso para editar esta planta';
+    btnGuardar.style.opacity = '0.4';
+    btnGuardar.style.cursor = 'not-allowed';
+    if (tabEstado) { tabEstado.disabled=true; tabEstado.style.opacity='0.4'; tabEstado.style.cursor='not-allowed'; }
+    if (tabCal)    { tabCal.disabled=true;    tabCal.style.opacity='0.4';    tabCal.style.cursor='not-allowed'; }
+    // Mostrar aviso
+    const avisoId='cd-aviso-bal';
+    let aviso=document.getElementById(avisoId);
+    if(!aviso){aviso=document.createElement('div');aviso.id=avisoId;aviso.style.cssText='background:#1e1012;border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px;';document.getElementById('m-info').before(aviso);}
+    aviso.textContent=`⚠ Solo puedes editar equipos de ${MQL_CD||'tu CD'}.`;
+    aviso.style.display='block';
+  } else {
+    if (btnGuardar) { btnGuardar.disabled=false; btnGuardar.style.opacity=''; btnGuardar.style.cursor=''; btnGuardar.title=''; }
+    if (tabEstado)  { tabEstado.disabled=false;  tabEstado.style.opacity='';  tabEstado.style.cursor=''; }
+    if (tabCal)     { tabCal.disabled=false;     tabCal.style.opacity='';     tabCal.style.cursor=''; }
+    const aviso=document.getElementById('cd-aviso-bal');
+    if(aviso) aviso.style.display='none';
+  }
 
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow='hidden';
