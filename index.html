@@ -2,23 +2,31 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MaquiLog · TASA</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#060e1a">
+<title>MaquiLog — Operatividad de Equipos de Logística</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root{
   --bg:#060e1a;--surf:#0d1829;--surf2:#132035;--surf3:#192840;
   --bord:rgba(255,255,255,0.06);--bord2:rgba(255,255,255,0.12);
-  --accent:#3b82f6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --accent:#3b82f6;--accent2:#1d4ed8;
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
   --text:#f0f4ff;--text2:#8899b5;--text3:#3d5070;
-  --r:12px;
+  --mono:'IBM Plex Mono',monospace;--sans:'Plus Jakarta Sans',sans-serif;
 }
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
 
-/* ── LOGIN OVERLAY ── */
+/* BLOBS */
+.blob{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
+.blob-1{width:500px;height:500px;background:rgba(59,130,246,0.07);top:-100px;left:-100px;}
+.blob-2{width:400px;height:400px;background:rgba(16,185,129,0.05);bottom:-80px;right:-80px;}
+
+/* ══════════════════════════════════════════
+   LOGIN OVERLAY — se muestra primero
+══════════════════════════════════════════ */
 #login-overlay{
   position:fixed;inset:0;z-index:999;
   background:var(--bg);
@@ -26,291 +34,394 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 #login-overlay.hidden{display:none}
 .login-box{
-  background:var(--surf);border:1px solid var(--bord2);border-radius:16px;
-  padding:40px;width:360px;
+  position:relative;z-index:1;
+  background:var(--surf);border:1px solid var(--bord2);border-radius:20px;
+  padding:40px 36px;width:380px;
 }
-.login-logo{
-  font-size:22px;font-weight:700;letter-spacing:-0.5px;
-  color:var(--text);margin-bottom:4px;
-}
-.login-logo span{color:var(--accent)}
-.login-sub{font-size:12px;color:var(--text2);margin-bottom:32px}
-.login-label{font-size:12px;color:var(--text2);margin-bottom:6px;display:block}
-.login-input{
+.login-brand{font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:2px;}
+.login-brand span{color:var(--accent);}
+.login-brand-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:28px;}
+.lbl{font-size:12px;color:var(--text2);display:block;margin-bottom:5px;}
+.linput{
   width:100%;background:var(--surf2);border:1px solid var(--bord2);
-  border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;
-  font-family:inherit;outline:none;transition:.2s;
+  border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;
+  font-family:var(--sans);outline:none;transition:.15s;
 }
-.login-input:focus{border-color:var(--accent)}
-.login-group{margin-bottom:16px}
-.login-btn{
+.linput:focus{border-color:var(--accent);}
+.lgroup{margin-bottom:14px;}
+.lbtn{
   width:100%;background:var(--accent);color:#fff;border:none;
-  border-radius:8px;padding:12px;font-size:14px;font-weight:600;
-  font-family:inherit;cursor:pointer;margin-top:8px;transition:.2s;
+  border-radius:8px;padding:11px;font-size:13px;font-weight:700;
+  font-family:var(--sans);cursor:pointer;margin-top:6px;transition:.15s;letter-spacing:0.01em;
 }
-.login-btn:hover{background:#2563eb}
-.login-btn:disabled{opacity:.5;cursor:not-allowed}
-.login-error{
-  color:var(--red);font-size:12px;margin-top:12px;text-align:center;min-height:18px;
-}
+.lbtn:hover{background:var(--accent2);}
+.lbtn:disabled{opacity:.5;cursor:not-allowed;}
+.lerr{color:var(--red);font-size:12px;margin-top:10px;text-align:center;min-height:16px;}
 
-/* ── HEADER ── */
-header{
-  position:sticky;top:0;z-index:100;
-  background:rgba(6,14,26,0.85);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--bord);
-  padding:0 24px;height:56px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.logo{font-size:18px;font-weight:700;letter-spacing:-0.5px}
-.logo span{color:var(--accent)}
-.header-right{display:flex;align-items:center;gap:12px}
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+.header{position:relative;z-index:10;padding:0 32px;border-bottom:1px solid var(--bord);}
+.header-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px;height:64px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-name{font-size:17px;font-weight:800;letter-spacing:-0.02em;}
+.brand-name span{color:var(--accent);}
+.brand-tag{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px;}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+
+/* chip de usuario logueado */
 .user-chip{
-  display:flex;align-items:center;gap:8px;
-  background:var(--surf2);border:1px solid var(--bord2);
-  border-radius:8px;padding:6px 12px;font-size:12px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--surf2);border:1px solid var(--bord2);border-radius:10px;
+  padding:6px 12px;
 }
-.user-chip .user-name{color:var(--text);font-weight:600}
-.user-chip .user-cd{color:var(--accent);font-size:11px}
-.user-chip .user-role{
-  background:var(--surf3);border-radius:4px;padding:2px 6px;
-  font-size:10px;color:var(--text2);font-family:'IBM Plex Mono',monospace;
+.chip-name{font-size:13px;font-weight:700;color:var(--text);}
+.chip-cd{font-size:11px;color:var(--accent);}
+.chip-role{
+  font-size:9px;font-family:var(--mono);text-transform:uppercase;
+  background:var(--surf3);border:1px solid var(--bord);border-radius:4px;
+  padding:2px 6px;color:var(--text3);
 }
 .logout-btn{
   background:var(--surf2);border:1px solid var(--bord2);border-radius:8px;
-  padding:6px 12px;font-size:12px;color:var(--text2);cursor:pointer;
-  font-family:inherit;transition:.2s;
+  padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--text3);
+  cursor:pointer;transition:.15s;text-transform:uppercase;letter-spacing:.04em;
 }
-.logout-btn:hover{color:var(--red);border-color:var(--red)}
+.logout-btn:hover{color:var(--red);border-color:rgba(239,68,68,.4);}
+.version-pill{background:var(--surf2);border:1px solid var(--bord2);border-radius:20px;padding:4px 12px;font-size:10px;font-family:var(--mono);color:var(--text3);}
 
-/* ── MAIN ── */
-main{max-width:1200px;margin:0 auto;padding:32px 24px}
-.section-title{
-  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--text2);margin-bottom:16px;
-}
+/* ══════════════════════════════════════════
+   HERO
+══════════════════════════════════════════ */
+.hero{position:relative;z-index:10;max-width:960px;margin:0 auto;padding:48px 32px 32px;}
+.hero-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.hero-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.6;transform:scale(1.3);}}
+.hero-eyebrow-txt{font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;}
+.hero-title{font-size:36px;font-weight:800;letter-spacing:-0.03em;line-height:1.15;margin-bottom:12px;}
+.hero-title .hi{color:var(--accent);}
+.hero-sub{font-size:14px;color:var(--text2);line-height:1.65;max-width:480px;}
+.hero-stats{display:flex;gap:28px;margin-top:28px;flex-wrap:wrap;}
+.hstat{display:flex;flex-direction:column;gap:2px;}
+.hstat-num{font-size:22px;font-weight:700;font-family:var(--mono);}
+.hstat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
 
-/* ── KPI BAR ── */
-.kpi-bar{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px;margin-bottom:36px;
-}
-.kpi{
-  background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);
-  padding:16px 20px;
-}
-.kpi-label{font-size:11px;color:var(--text2);margin-bottom:4px}
-.kpi-val{font-size:28px;font-weight:700;font-family:'IBM Plex Mono',monospace}
-.kpi-val.green{color:var(--green)}
-.kpi-val.amber{color:var(--amber)}
-.kpi-val.red{color:var(--red)}
-.kpi-sub{font-size:11px;color:var(--text3);margin-top:2px}
+/* ══════════════════════════════════════════
+   MODULES GRID
+══════════════════════════════════════════ */
+.section-label{position:relative;z-index:10;max-width:960px;margin:0 auto;padding:0 32px 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);font-family:var(--mono);}
+.modules-grid{position:relative;z-index:10;max-width:960px;margin:0 auto;padding:0 32px 56px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.mod{border-radius:18px;padding:24px 22px 20px;display:flex;flex-direction:column;gap:0;position:relative;overflow:hidden;border:1px solid var(--bord);background:var(--surf);transition:transform 0.15s,border-color 0.15s,box-shadow 0.15s;}
+.mod.on{cursor:pointer;text-decoration:none;color:inherit;}
+.mod.on:hover{transform:translateY(-3px);border-color:var(--bord2);box-shadow:0 12px 40px rgba(0,0,0,0.3);}
+.mod.on:active{transform:scale(0.98);}
+.mod.off{cursor:not-allowed;}
+.mod.off .mod-visual,.mod.off .mod-name,.mod.off .mod-desc,.mod.off .mod-foot{opacity:0.4;}
+.mod.on::after{content:'';position:absolute;inset:0;border-radius:18px;opacity:0;transition:opacity 0.2s;background:radial-gradient(ellipse at 30% 20%,var(--glow,rgba(59,130,246,0.08)),transparent 70%);}
+.mod.on:hover::after{opacity:1;}
+.lock-tag{position:absolute;top:14px;right:14px;background:var(--surf3);border:1px solid var(--bord2);border-radius:6px;padding:3px 8px;font-size:9px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;gap:4px;}
+.lock-tag svg{width:9px;height:9px;}
+.mod-visual{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;flex-shrink:0;}
+.mod-visual svg{width:28px;height:28px;}
+.mod-name{font-size:16px;font-weight:700;margin-bottom:6px;letter-spacing:-0.01em;}
+.mod-desc{font-size:12px;color:var(--text2);line-height:1.55;flex:1;margin-bottom:16px;}
+.mod-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;}
+.mod-badge{font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;letter-spacing:0.03em;}
+.b-live{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2);}
+.b-soon{background:rgba(61,80,112,0.3);color:var(--text3);border:1px solid var(--bord2);}
+.b-admin{background:rgba(139,92,246,0.12);color:var(--purple);border:1px solid rgba(139,92,246,0.2);}
+.mod-arrow{width:28px;height:28px;border-radius:8px;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;transition:background 0.15s,transform 0.15s;}
+.mod-arrow svg{width:14px;height:14px;color:var(--accent);}
+.mod.on:hover .mod-arrow{background:var(--accent);transform:translateX(2px);}
+.mod.on:hover .mod-arrow svg{color:white;}
 
-/* ── MODULE GRID ── */
-.module-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:16px;margin-bottom:36px;
-}
-.mod{
-  background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);
-  padding:20px;cursor:pointer;transition:.2s;text-decoration:none;display:block;
-  position:relative;overflow:hidden;
-}
-.mod:hover{background:var(--surf2);border-color:var(--bord2);transform:translateY(-1px)}
-.mod.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
-.mod-icon{font-size:28px;margin-bottom:12px}
-.mod-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
-.mod-desc{font-size:12px;color:var(--text2);line-height:1.5}
-.mod-badge{
-  position:absolute;top:12px;right:12px;
-  font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 6px;
-  border-radius:4px;text-transform:uppercase;letter-spacing:.05em;
-}
-.badge-live{background:rgba(16,185,129,.15);color:var(--green)}
-.badge-soon{background:rgba(245,158,11,.1);color:var(--amber)}
-.badge-new{background:rgba(59,130,246,.15);color:var(--accent)}
-.badge-admin{background:rgba(139,92,246,.15);color:var(--purple)}
+/* Footer */
+.page-footer{margin-top:auto;position:relative;z-index:10;border-top:1px solid var(--bord);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;}
+.footer-brand{font-size:12px;font-weight:700;letter-spacing:-0.01em;}
+.footer-brand span{color:var(--accent);}
+.footer-copy{font-size:11px;color:var(--text3);}
 
-/* hidden by role */
-.admin-only{display:none}
+/* admin-only oculto por defecto */
+.admin-only{display:none !important;}
+
+@media(max-width:680px){.modules-grid{grid-template-columns:1fr 1fr;padding:0 16px 40px;}.hero{padding:32px 16px 24px;}.section-label{padding:0 16px 12px;}.hero-title{font-size:24px;}.header{padding:0 16px;}.page-footer{padding:14px 16px;}}
+@media(max-width:420px){.modules-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
 
-<!-- ══════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      LOGIN OVERLAY
-════════════════════════════════════════════════════ -->
+══════════════════════════════════════════ -->
 <div id="login-overlay">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
   <div class="login-box">
-    <div class="login-logo">Maqui<span>Log</span></div>
-    <div class="login-sub">Sistema de Gestión de Flota · TASA</div>
+    <div class="login-brand"><span>Maqui</span>Log · TASA</div>
+    <div class="login-brand-sub">Sistema de Gestión de Flota</div>
 
-    <div class="login-group">
-      <label class="login-label">Correo corporativo</label>
-      <input id="l-email" class="login-input" type="email" placeholder="usuario@tasa.com.pe" autocomplete="email">
+    <div class="lgroup">
+      <label class="lbl">Correo corporativo</label>
+      <input id="l-email" class="linput" type="email" placeholder="usuario@tasa.com.pe" autocomplete="email">
     </div>
-    <div class="login-group">
-      <label class="login-label">Contraseña</label>
-      <input id="l-pass" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password">
+    <div class="lgroup">
+      <label class="lbl">Contraseña</label>
+      <input id="l-pass" class="linput" type="password" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <button class="login-btn" id="l-btn" onclick="doLogin()">Ingresar</button>
-    <div class="login-error" id="l-err"></div>
+    <button class="lbtn" id="l-btn" onclick="doLogin()">Ingresar al sistema</button>
+    <div class="lerr" id="l-err"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════
+<!-- ══════════════════════════════════════════
      HEADER
-════════════════════════════════════════════════════ -->
-<header>
-  <div class="logo">Maqui<span>Log</span> <span style="color:var(--text3);font-size:13px;font-weight:400">· TASA</span></div>
-  <div class="header-right">
-    <div class="user-chip" id="user-chip" style="display:none">
+══════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
       <div>
-        <div class="user-name" id="chip-nombre">—</div>
-        <div class="user-cd" id="chip-cd">—</div>
+        <div class="brand-name"><span>Maqui</span>Log</div>
+        <div class="brand-tag">TASA Supply · v2.0</div>
       </div>
-      <span class="user-role" id="chip-role">—</span>
     </div>
-    <button class="logout-btn" id="logout-btn" style="display:none" onclick="doLogout()">Cerrar sesión</button>
-  </div>
-</header>
-
-<!-- ══════════════════════════════════════════════════
-     MAIN DASHBOARD
-════════════════════════════════════════════════════ -->
-<main id="dashboard" style="display:none">
-
-  <!-- KPIs -->
-  <div class="section-title">Operatividad General</div>
-  <div class="kpi-bar">
-    <div class="kpi">
-      <div class="kpi-label">Equipos operativos</div>
-      <div class="kpi-val green" id="kpi-eq">—</div>
-      <div class="kpi-sub" id="kpi-eq-sub">de — equipos</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Balanzas operativas</div>
-      <div class="kpi-val green" id="kpi-bal">—</div>
-      <div class="kpi-sub" id="kpi-bal-sub">de — balanzas</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Contómetros activos</div>
-      <div class="kpi-val green" id="kpi-cont">—</div>
-      <div class="kpi-sub" id="kpi-cont-sub">de — contómetros</div>
+    <div class="header-right">
+      <!-- Chip de usuario (visible tras login) -->
+      <div class="user-chip" id="user-chip" style="display:none;">
+        <div>
+          <div class="chip-name" id="chip-nombre">—</div>
+          <div class="chip-cd" id="chip-cd">—</div>
+        </div>
+        <span class="chip-role" id="chip-role">—</span>
+      </div>
+      <button class="logout-btn" id="logout-btn" style="display:none;" onclick="doLogout()">Salir</button>
+      <!-- Pill de versión (visible antes del login) -->
+      <div class="version-pill" id="ver-pill">v2.0</div>
     </div>
   </div>
+</div>
 
-  <!-- Módulos principales -->
-  <div class="section-title">Módulos</div>
-  <div class="module-grid" id="mod-grid">
-
-    <a class="mod" href="flota.html">
-      <span class="mod-badge badge-live">Live</span>
-      <div class="mod-icon">🚜</div>
-      <div class="mod-name">Flota TASA</div>
-      <div class="mod-desc">Gestión y control de equipos de manipuleo por CD</div>
-    </a>
-
-    <a class="mod" href="contometros.html">
-      <span class="mod-badge badge-live">Live</span>
-      <div class="mod-icon">⚙️</div>
-      <div class="mod-name">Contómetros</div>
-      <div class="mod-desc">Registro de horas de operación por equipo</div>
-    </a>
-
-    <a class="mod" href="balanzas.html">
-      <span class="mod-badge badge-live">Live</span>
-      <div class="mod-icon">⚖️</div>
-      <div class="mod-name">Balanzas</div>
-      <div class="mod-desc">Control de calibración y estado de balanzas</div>
-    </a>
-
-    <div class="mod disabled">
-      <span class="mod-badge badge-soon">Próximo</span>
-      <div class="mod-icon">🚐</div>
-      <div class="mod-name">Rampas Móviles</div>
-      <div class="mod-desc">Gestión de rampas y equipos de apoyo</div>
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">
+    <span class="hero-dot"></span>
+    <span class="hero-eyebrow-txt">Sistema activo · 8 CDs nacionales</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+    <div>
+      <div class="hero-title">Operatividad de<br>Equipos de <span class="hi">Logística</span></div>
+      <div class="hero-sub">Plataforma centralizada para el registro, control y seguimiento de activos logísticos de TASA a nivel nacional.</div>
     </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-num" style="color:#60a5fa;" id="kpi-equipos">—</div><div class="hstat-lbl">Equipos</div></div>
+    <div class="hstat"><div class="hstat-num" style="color:var(--green);">8</div><div class="hstat-lbl">CDs activos</div></div>
+    <div class="hstat"><div class="hstat-num" id="kpi-operatividad" style="color:var(--green);">—%</div><div class="hstat-lbl">Operatividad</div></div>
+  </div>
+</div>
 
-    <a class="mod" href="mantasa.html">
-      <span class="mod-badge badge-live">Live</span>
-      <div class="mod-icon">🧵</div>
-      <div class="mod-name">ManTASA 2.0</div>
-      <div class="mod-desc">Control de inventario y movimiento de mantas</div>
-    </a>
+<!-- ══════════════════════════════════════════
+     MÓDULOS PRINCIPALES
+══════════════════════════════════════════ -->
+<div class="section-label">Módulos</div>
+<div class="modules-grid">
 
-    <a class="mod" href="control.html">
-      <span class="mod-badge badge-live">Live</span>
-      <div class="mod-icon">📋</div>
-      <div class="mod-name">Control</div>
-      <div class="mod-desc">Panel de seguimiento y reportes operativos</div>
-    </a>
+  <a class="mod on" href="flota.html" style="--glow:rgba(59,130,246,0.1);">
+    <div class="mod-visual" style="background:rgba(59,130,246,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+      </svg>
+    </div>
+    <div class="mod-name">Flota TASA</div>
+    <div class="mod-desc">Montacargas, apiladores y traspaletas. Registro de mantenimientos, horómetros y operatividad por CD.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
 
+  <a class="mod on" href="contometros.html" style="--glow:rgba(245,158,11,0.08);">
+    <div class="mod-visual" style="background:rgba(245,158,11,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="mod-name">Contómetros</div>
+    <div class="mod-desc">Registro de horas de operación por equipo. Seguimiento de horómetros y alertas de mantenimiento.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
+
+  <a class="mod on" href="balanzas.html" style="--glow:rgba(139,92,246,0.08);">
+    <div class="mod-visual" style="background:rgba(139,92,246,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round">
+        <path d="M12 3v18M3 9l9-6 9 6"/><path d="M3 15h18"/><path d="M5 9l-2 6h4z"/><path d="M19 9l-2 6h4z"/>
+      </svg>
+    </div>
+    <div class="mod-name">Balanzas</div>
+    <div class="mod-desc">Calibración, mantenimiento y adherencia de balanzas industriales. Seguimiento por período en 9 plantas.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
+
+  <div class="mod off">
+    <div class="lock-tag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      En desarrollo
+    </div>
+    <div class="mod-visual" style="background:rgba(61,80,112,0.2);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#3d5070" stroke-width="1.8" stroke-linecap="round">
+        <path d="M3 9l9-6 9 6v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <div class="mod-name">Rampas Móviles</div>
+    <div class="mod-desc">Inspecciones y ubicación de rampas de carga y descarga. Control por CD a nivel nacional.</div>
+    <div class="mod-foot"><span class="mod-badge b-soon">En desarrollo</span></div>
   </div>
 
-  <!-- Herramientas -->
-  <div class="section-title">Herramientas</div>
-  <div class="module-grid">
+  <a class="mod on" href="mantasa.html" style="--glow:rgba(245,158,11,0.08);">
+    <div class="mod-visual" style="background:rgba(245,158,11,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round">
+        <path d="M4 4h16v4H4z"/><path d="M4 12h16v4H4z"/><path d="M4 20h16"/>
+      </svg>
+    </div>
+    <div class="mod-name">ManTASA 2.0</div>
+    <div class="mod-desc">Gestión de mantas y cobertores de almacén. Control de inventario, estado y asignación por CD.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
 
-    <a class="mod" href="checklist.html">
-      <div class="mod-icon">✅</div>
-      <div class="mod-name">Checklist</div>
-      <div class="mod-desc">Lista de verificación pre-operacional de equipos</div>
-    </a>
+  <a class="mod on" href="control.html" style="--glow:rgba(139,92,246,0.08);">
+    <div class="mod-visual" style="background:rgba(139,92,246,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+    </div>
+    <div class="mod-name">Control</div>
+    <div class="mod-desc">Dashboard de control de horómetros por planta. Seguimiento mensual de cumplimiento por CD.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
 
-    <a class="mod" href="qr.html">
-      <div class="mod-icon">🔳</div>
-      <div class="mod-name">Generador de QR</div>
-      <div class="mod-desc">Genera códigos QR para etiquetado de equipos</div>
-    </a>
+</div>
 
-    <a class="mod" href="repositorio.html">
-      <div class="mod-icon">📁</div>
-      <div class="mod-name">Repositorio de Docs</div>
-      <div class="mod-desc">Manuales, procedimientos y documentos técnicos</div>
-    </a>
+<!-- ══════════════════════════════════════════
+     HERRAMIENTAS
+══════════════════════════════════════════ -->
+<div class="section-label" style="margin-top:8px;">Herramientas</div>
+<div style="max-width:960px;margin:0 auto;padding:0 32px 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
 
-    <!-- SOLO ADMIN -->
-    <a class="mod admin-only" href="usuarios.html" id="mod-usuarios">
-      <span class="mod-badge badge-admin">Admin</span>
-      <div class="mod-icon">👥</div>
-      <div class="mod-name">Gestión de Usuarios</div>
-      <div class="mod-desc">Administrar cuentas, roles y accesos por CD</div>
-    </a>
+  <a class="mod on" href="checklist.html" style="--glow:rgba(16,185,129,0.08);">
+    <div class="mod-visual" style="background:rgba(16,185,129,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+        <path d="M7 8h3M7 12h2M7 16h5"/>
+      </svg>
+    </div>
+    <div class="mod-name">Checklist</div>
+    <div class="mod-desc">Inspección pre-operacional CAR04-F17. El operador escanea el QR y completa los 44 ítems de seguridad.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
 
-  </div>
-</main>
+  <a class="mod on" href="generador_qr.html" style="--glow:rgba(245,158,11,0.08);">
+    <div class="mod-visual" style="background:rgba(245,158,11,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <rect x="5" y="5" width="3" height="3" fill="#fbbf24" stroke="none"/>
+        <rect x="16" y="5" width="3" height="3" fill="#fbbf24" stroke="none"/>
+        <rect x="5" y="16" width="3" height="3" fill="#fbbf24" stroke="none"/>
+        <path d="M14 14h3v3M17 14v3h3M14 17h3"/>
+      </svg>
+    </div>
+    <div class="mod-name">Generador de QR</div>
+    <div class="mod-desc">Genera e imprime los códigos QR para pegar en cada montacargas. Filtra por CD.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● Disponible</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
 
+  <a class="mod on" href="documentos.html" style="--glow:rgba(16,185,129,0.08);">
+    <div class="mod-visual" style="background:rgba(16,185,129,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linecap="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <div class="mod-name">Repositorio de Docs</div>
+    <div class="mod-desc">Consulta y descarga los certificados y constancias subidos. Filtra por módulo, tipo de evento y planta.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-live">● En vivo</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
+
+  <!-- SOLO ADMIN — oculto por defecto, JS lo muestra -->
+  <a class="mod on admin-only" href="usuarios.html" id="mod-usuarios" style="--glow:rgba(139,92,246,0.1);">
+    <div class="mod-visual" style="background:rgba(139,92,246,0.12);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    </div>
+    <div class="mod-name">Gestión de Usuarios</div>
+    <div class="mod-desc">Administra cuentas, roles y accesos por CD. Solo disponible para administradores.</div>
+    <div class="mod-foot">
+      <span class="mod-badge b-admin">● Admin</span>
+      <div class="mod-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+    </div>
+  </a>
+
+</div>
+
+<div class="page-footer">
+  <div class="footer-brand"><span>Maqui</span>Log · TASA Supply</div>
+  <div class="footer-copy" id="fecha-footer"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════
-// SUPABASE
-// ═══════════════════════════════════════════════
-const SB_URL = 'https://njmswjinwrcxsfduchsc.supabase.co';
-const SB_KEY = 'sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J';
-const { createClient } = supabase;
-const sb = createClient(SB_URL, SB_KEY);
+const _sb = supabase.createClient(
+  'https://njmswjinwrcxsfduchsc.supabase.co',
+  'sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J'
+);
 
-// ═══════════════════════════════════════════════
-// INIT — verificar sesión existente
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
+// INIT — verificar sesión
+// ═══════════════════════════════════
 (async () => {
   const cached = sessionStorage.getItem('mql_user');
   if (cached) {
-    // Verificar que la sesión de Supabase siga activa
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      showDashboard(JSON.parse(cached));
-      return;
-    }
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) { showDashboard(JSON.parse(cached)); return; }
     sessionStorage.removeItem('mql_user');
   }
-  // Sin sesión → mostrar login
-  document.getElementById('login-overlay').classList.remove('hidden');
+  // Sin sesión activa → mostrar login
 })();
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 // LOGIN
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
   const pass  = document.getElementById('l-pass').value;
@@ -318,134 +429,113 @@ async function doLogin() {
   const err   = document.getElementById('l-err');
 
   if (!email || !pass) { err.textContent = 'Ingresa tu correo y contraseña'; return; }
-
-  btn.disabled = true;
-  btn.textContent = 'Verificando…';
-  err.textContent = '';
+  btn.disabled = true; btn.textContent = 'Verificando…'; err.textContent = '';
 
   try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
 
-    // Leer perfil desde mql_usuarios
-    const { data: perfil, error: pe } = await sb
+    const { data: perfil, error: pe } = await _sb
       .from('mql_usuarios')
       .select('nombre,rol,cd,activo')
       .eq('id', data.user.id)
       .single();
 
     if (pe) throw new Error('No se encontró tu perfil. Contacta al administrador.');
-    if (!perfil.activo) throw new Error('Tu cuenta está desactivada. Contacta al administrador.');
+    if (!perfil.activo) throw new Error('Tu cuenta está desactivada.');
 
     const user = {
+      id: data.user.id,
       email: data.user.email,
       nombre: perfil.nombre || data.user.email,
       rol: perfil.rol,
-      cd: perfil.cd || 'Todos los CDs',
+      cd: perfil.cd,  // null = admin (todos los CDs)
     };
-
     sessionStorage.setItem('mql_user', JSON.stringify(user));
     showDashboard(user);
 
-  } catch (e) {
+  } catch(e) {
     err.textContent = e.message === 'Invalid login credentials'
       ? 'Correo o contraseña incorrectos'
       : e.message;
-    btn.disabled = false;
-    btn.textContent = 'Ingresar';
+    btn.disabled = false; btn.textContent = 'Ingresar al sistema';
   }
 }
 
-// Enter key en inputs
-['l-email','l-pass'].forEach(id => {
-  document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') doLogin();
-  });
-});
+['l-email','l-pass'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); })
+);
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 // SHOW DASHBOARD
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 function showDashboard(user) {
-  // Ocultar login
   document.getElementById('login-overlay').classList.add('hidden');
 
-  // Mostrar header info
   document.getElementById('chip-nombre').textContent = user.nombre;
-  document.getElementById('chip-cd').textContent = user.cd;
-  document.getElementById('chip-role').textContent = user.rol;
+  document.getElementById('chip-cd').textContent     = user.cd || 'Todos los CDs';
+  document.getElementById('chip-role').textContent   = user.rol;
   document.getElementById('user-chip').style.display = 'flex';
-  document.getElementById('logout-btn').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'inline-block';
+  document.getElementById('ver-pill').style.display   = 'none';
 
-  // Mostrar dashboard
-  document.getElementById('dashboard').style.display = 'block';
-
-  // Admin-only cards
   if (user.rol === 'admin') {
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('.admin-only').forEach(el => el.style.removeProperty('display'));
   }
 
-  // Cargar KPIs
-  loadKPIs(user);
+  cargarOperatividad(user);
 }
 
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 // LOGOUT
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════
 async function doLogout() {
-  await sb.auth.signOut();
+  await _sb.auth.signOut();
   sessionStorage.removeItem('mql_user');
   location.reload();
 }
 
-// ═══════════════════════════════════════════════
-// KPIs
-// ═══════════════════════════════════════════════
-async function loadKPIs(user) {
+// ═══════════════════════════════════
+// KPIs — igual que el original
+// ═══════════════════════════════════
+async function cargarOperatividad(user) {
   try {
-    // Equipos
-    let eqQ = sb.from('equipos').select('estado', { count: 'exact', head: false });
-    if (user.rol === 'operador') eqQ = eqQ.eq('cd', user.cd);
-    const { data: eqData } = await eqQ;
-    if (eqData) {
-      const total = eqData.length;
-      const op = eqData.filter(r => r.estado === 'OPERATIVO').length;
-      setKPI('kpi-eq', op, total, op/total);
-      document.getElementById('kpi-eq-sub').textContent = `de ${total} equipos`;
-    }
+    let eqQ = _sb.from('equipos').select('status');
+    if (user.cd) eqQ = eqQ.eq('cd', user.cd);
+    const { data: eq } = await eqQ;
 
-    // Balanzas
-    let balQ = sb.from('balanzas').select('estado', { count: 'exact', head: false });
-    if (user.rol === 'operador') balQ = balQ.eq('cd', user.cd);
-    const { data: balData } = await balQ;
-    if (balData) {
-      const total = balData.length;
-      const op = balData.filter(r => r.estado === 'OPERATIVO').length;
-      setKPI('kpi-bal', op, total, op/total);
-      document.getElementById('kpi-bal-sub').textContent = `de ${total} balanzas`;
-    }
+    let balQ = _sb.from('balanzas').select('status');
+    if (user.cd) balQ = balQ.eq('cd', user.cd);
+    const { data: bal } = await balQ;
 
-    // Contómetros
-    let cQ = sb.from('contometros').select('activo');
-    if (user.rol === 'operador') cQ = cQ.eq('cd', user.cd);
-    const { data: cData } = await cQ;
-    if (cData) {
-      const total = cData.length;
-      const op = cData.filter(r => r.activo).length;
-      setKPI('kpi-cont', op, total, op/total);
-      document.getElementById('kpi-cont-sub').textContent = `de ${total} contómetros`;
-    }
+    let contQ = _sb.from('contometros').select('status');
+    if (user.cd) contQ = contQ.eq('cd', user.cd);
+    const { data: cont } = await contQ;
 
-  } catch(e) {
-    console.error('KPI error:', e);
-  }
+    const eqActivos = (eq||[]).filter(x => x.status !== 'Baja definitiva');
+    const elEq = document.getElementById('kpi-equipos');
+    if (elEq) elEq.textContent = eqActivos.length;
+
+    const pct = (arr) => {
+      if (!arr || !arr.length) return null;
+      const activos = arr.filter(x => x.status !== 'Baja definitiva');
+      if (!activos.length) return null;
+      return Math.round(activos.filter(x => x.status === 'Operativo').length / activos.length * 100);
+    };
+
+    const pcts = [pct(eq), pct(bal), pct(cont)].filter(x => x !== null);
+    if (!pcts.length) return;
+    const promedio = Math.round(pcts.reduce((a,b) => a+b, 0) / pcts.length);
+    const el = document.getElementById('kpi-operatividad');
+    if (el) {
+      el.textContent = promedio + '%';
+      el.style.color = promedio >= 90 ? 'var(--green)' : promedio >= 70 ? 'var(--amber)' : 'var(--red)';
+    }
+  } catch(e) { console.warn('KPI:', e.message); }
 }
 
-function setKPI(id, val, total, ratio) {
-  const el = document.getElementById(id);
-  el.textContent = val;
-  el.className = 'kpi-val ' + (ratio >= 0.9 ? 'green' : ratio >= 0.7 ? 'amber' : 'red');
-}
+document.getElementById('fecha-footer').textContent =
+  new Date().toLocaleDateString('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
 </script>
 </body>
 </html>
