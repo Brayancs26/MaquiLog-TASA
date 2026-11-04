@@ -216,10 +216,7 @@ const sb = createClient(SB_URL, SB_KEY);
   const user = JSON.parse(cached);
   if (user.rol !== 'admin') { location.href = 'index.html'; return; }
 
-  // Verificar sesión activa
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { sessionStorage.removeItem('mql_user'); location.href = 'index.html'; return; }
-
+  // Sin verificar getSession — se confía en sessionStorage (mismo criterio que mantasa)
   loadUsers();
 })();
 
@@ -305,8 +302,14 @@ function closeModal() {
 }
 
 function editUser(id) {
-  const u = allUsers.find(u => u.id === id);
-  if (u) openModal(u);
+  // Comparar como string para evitar mismatch de tipos
+  const u = allUsers.find(u => String(u.id) === String(id));
+  if (u) {
+    openModal(u);
+  } else {
+    console.warn('editUser: no se encontró usuario con id:', id, '— allUsers:', allUsers.map(x=>x.id));
+    alert('No se pudo cargar el usuario. Recarga la página e intenta de nuevo.');
+  }
 }
 
 function toggleCd() {
