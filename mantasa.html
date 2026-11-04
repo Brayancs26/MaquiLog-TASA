@@ -571,15 +571,31 @@ let MQL_USER_CD = null;
 async function boot(){
   const pill = document.getElementById("status-pill");
 
-  // ── Verificar sesión MaquiLog centralizada ────────────────────────────────
+  // ── 1. Verificar sesión MaquiLog centralizada ─────────────────────────────
   const cached = sessionStorage.getItem('mql_user');
   if (!cached) { location.href = 'index.html'; return; }
   const mqlUser = JSON.parse(cached);
 
-  // NOTA: ManTASA usa memAdapter → sb.auth.getSession() SIEMPRE devuelve null
-  // después de navegar desde index.html. Se confía solo en sessionStorage.
+  // ── 2. Restaurar sesión Supabase desde localStorage (guardada por index.html)
+  // ManTASA usa memAdapter → la sesión no persiste entre páginas por sí sola.
+  // index.html usa el cliente por defecto (localStorage), así que el token
+  // está en 'sb-njmswjinwrcxsfduchsc-auth-token'.
+  try {
+    const tokenKey = 'sb-njmswjinwrcxsfduchsc-auth-token';
+    const raw = localStorage.getItem(tokenKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const access_token  = parsed?.access_token  || parsed?.currentSession?.access_token;
+      const refresh_token = parsed?.refresh_token || parsed?.currentSession?.refresh_token;
+      if (access_token && refresh_token) {
+        await sb.auth.setSession({ access_token, refresh_token });
+      }
+    }
+  } catch(e) {
+    console.warn('No se pudo restaurar sesión Supabase:', e.message);
+  }
 
-  // Guardar CD para filtrar (null = admin, ve todo)
+  // ── 3. Guardar CD para filtrar (null = admin, ve todo)
   MQL_USER_CD = mqlUser.cd || null;
   pill.textContent = mqlUser.nombre || mqlUser.email;
   pill.className = 'status-pill';
