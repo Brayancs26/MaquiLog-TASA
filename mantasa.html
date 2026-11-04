@@ -576,9 +576,8 @@ async function boot(){
   if (!cached) { location.href = 'index.html'; return; }
   const mqlUser = JSON.parse(cached);
 
-  // Verificar que la sesión de Supabase siga activa
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { sessionStorage.removeItem('mql_user'); location.href = 'index.html'; return; }
+  // NOTA: ManTASA usa memAdapter → sb.auth.getSession() SIEMPRE devuelve null
+  // después de navegar desde index.html. Se confía solo en sessionStorage.
 
   // Guardar CD para filtrar (null = admin, ve todo)
   MQL_USER_CD = mqlUser.cd || null;
