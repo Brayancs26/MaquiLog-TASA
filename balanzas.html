@@ -198,7 +198,7 @@ select.fld{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
     <select class="filter-select" id="f-planta" onchange="applyFilters()">
       <option value="">Todas las plantas</option>
       <option>MALABRIGO</option><option>CHIMBOTE</option><option>SAMANCO</option>
-      <option>SUPE</option><option>VEGUETA</option><option value="PISCO SUR">PISCO</option>
+      <option>SUPE</option><option>VEGUETA</option><option>PISCO</option>
       <option>PUCUSANA</option><option>CALLAO NORTE</option><option>MATARANI</option>
     </select>
     <select class="filter-select" id="f-estado" onchange="applyFilters()">
@@ -342,7 +342,7 @@ const CD_A_PLANTA = {
   'Samanco':       'SAMANCO',
   'Supe':          'SUPE',
   'Vegueta':       'VEGUETA',
-  'Pisco':         'PISCO SUR',
+  'Pisco':         'PISCO',
   'Pucusana':      'PUCUSANA',
   'Callao':        'CALLAO NORTE',
   'Matarani':      'MATARANI',
@@ -389,6 +389,18 @@ async function cargarDatos(){
     if(e2)throw e2;
     allCals=cals;
     dbStatus(true,'Supabase conectado ✓');
+    // Autoseleccionar planta del usuario ANTES de filtrar
+    if(MQL_PLANTA){
+      const sel=document.getElementById('f-planta');
+      if(sel){
+        for(let i=0;i<sel.options.length;i++){
+          if(sel.options[i].value.toUpperCase()===MQL_PLANTA.toUpperCase()||
+             sel.options[i].text.toUpperCase()===MQL_PLANTA.toUpperCase()){
+            sel.selectedIndex=i; break;
+          }
+        }
+      }
+    }
     renderStats();applyFilters();
   }catch(err){
     dbStatus(false,'Error de conexión');
