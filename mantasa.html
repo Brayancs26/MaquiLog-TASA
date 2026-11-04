@@ -552,13 +552,8 @@ async function handleLogin(){
 
 async function handleLogout(){
   await sb.auth.signOut();
-  document.getElementById("main-app").style.display="none";
-  document.getElementById("tabs-bar").style.display="none";
-  document.getElementById("btn-logout").style.display="none";
-  document.getElementById("login-screen").style.display="block";
-  document.getElementById("login-user").value="";
-  document.getElementById("login-pass").value="";
-  document.getElementById("status-pill").textContent="Sesión cerrada";
+  sessionStorage.removeItem('mql_user');
+  location.href = 'index.html';
 }
 
 async function onAuthenticated(){
@@ -570,19 +565,27 @@ async function onAuthenticated(){
 }
 
 /* ===== BOOT ===== */
+// CD del usuario logueado (null = admin, ve/edita todo)
+let MQL_USER_CD = null;
+
 async function boot(){
   const pill = document.getElementById("status-pill");
-  if (!CONFIGURED){
-    document.getElementById("config-banner").style.display="block";
-    pill.textContent="Sin conectar"; pill.className="status-pill err"; return;
-  }
-  const { data: session } = await sb.auth.getSession();
-  if (session && session.session){
-    await onAuthenticated();
-  } else {
-    document.getElementById("login-screen").style.display="block";
-    pill.textContent="Inicia sesión"; pill.className="status-pill warn";
-  }
+
+  // ── Verificar sesión MaquiLog centralizada ────────────────────────────────
+  const cached = sessionStorage.getItem('mql_user');
+  if (!cached) { location.href = 'index.html'; return; }
+  const mqlUser = JSON.parse(cached);
+
+  // Verificar que la sesión de Supabase siga activa
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { sessionStorage.removeItem('mql_user'); location.href = 'index.html'; return; }
+
+  // Guardar CD para filtrar (null = admin, ve todo)
+  MQL_USER_CD = mqlUser.cd || null;
+  pill.textContent = mqlUser.nombre || mqlUser.email;
+  pill.className = 'status-pill';
+
+  await onAuthenticated();
 }
 
 async function loadAppData(){
