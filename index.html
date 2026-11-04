@@ -142,7 +142,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 .footer-copy{font-size:11px;color:var(--text3);}
 
 /* admin-only oculto por defecto */
-.admin-only{display:none !important;}
+.admin-only{display:none;}
 
 @media(max-width:680px){.modules-grid{grid-template-columns:1fr 1fr;padding:0 16px 40px;}.hero{padding:32px 16px 24px;}.section-label{padding:0 16px 12px;}.hero-title{font-size:24px;}.header{padding:0 16px;}.page-footer{padding:14px 16px;}}
 @media(max-width:420px){.modules-grid{grid-template-columns:1fr;}}
@@ -480,7 +480,7 @@ function showDashboard(user) {
   document.getElementById('ver-pill').style.display   = 'none';
 
   if (user.rol === 'admin') {
-    document.querySelectorAll('.admin-only').forEach(el => el.style.removeProperty('display'));
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
   }
 
   cargarOperatividad(user);
