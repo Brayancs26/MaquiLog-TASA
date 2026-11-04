@@ -474,7 +474,7 @@ function showDashboard(user) {
 
   document.getElementById('chip-nombre').textContent = user.nombre;
   document.getElementById('chip-cd').textContent     = user.cd || 'Todos los CDs';
-  document.getElementById('chip-role').textContent   = user.rol;
+  document.getElementById('chip-role').textContent   = user.rol === 'admin' ? 'Administrador' : 'Personal';
   document.getElementById('user-chip').style.display = 'flex';
   document.getElementById('logout-btn').style.display = 'inline-block';
   document.getElementById('ver-pill').style.display   = 'none';
