@@ -372,39 +372,35 @@ async function saveUser() {
       if (error) throw error;
 
     } else {
-      // NUEVO — crear en Auth + insertar en mql_usuarios
+      // NUEVO — crear en Auth (trigger crea perfil automáticamente, luego actualizamos)
       if (!email || !pass) throw new Error('Correo y contraseña son requeridos para nuevo usuario');
       if (pass.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
 
-      // 1. Guardar sesión del admin ANTES de signUp (signUp la reemplaza)
-      const { data: adminSession } = await sb.auth.getSession();
-      const adminAccess  = adminSession?.session?.access_token;
-      const adminRefresh = adminSession?.session?.refresh_token;
+      // 1. Guardar sesión del admin ANTES de signUp (signUp cambia la sesión activa)
+      const { data: adminSessionData } = await sb.auth.getSession();
+      const adminAccess  = adminSessionData?.session?.access_token;
+      const adminRefresh = adminSessionData?.session?.refresh_token;
 
-      // 2. Crear cuenta en Supabase Auth (esto loguea al nuevo usuario)
+      // 2. Crear cuenta en Supabase Auth
+      //    El trigger on_auth_user_created crea el perfil base automáticamente
       const { data: authData, error: authErr } = await sb.auth.signUp({
-        email,
-        password: pass,
-        options: { emailRedirectTo: null }
+        email, password: pass, options: { emailRedirectTo: null }
       });
       if (authErr) throw new Error('Error Auth: ' + authErr.message);
       const newUid = authData?.user?.id;
-      if (!newUid) throw new Error('No se obtuvo el ID del nuevo usuario. Puede que el correo ya exista.');
+      if (!newUid) throw new Error('No se obtuvo el ID. Puede que el correo ya exista.');
 
-      // 3. Restaurar sesión del admin antes de insertar
+      // 3. Restaurar sesión del admin
       if (adminAccess && adminRefresh) {
         await sb.auth.setSession({ access_token: adminAccess, refresh_token: adminRefresh });
       }
 
-      // 4. Insertar perfil via función SECURITY DEFINER (admin restaurado)
-      const { error: dbErr } = await sb.rpc('mql_crear_perfil_usuario', {
-        p_id:     newUid,
-        p_email:  email,
-        p_nombre: nombre,
-        p_cd:     cd || '',
-        p_rol:    rol
-      });
-      if (dbErr) throw new Error('Usuario creado en Auth pero error en perfil: ' + dbErr.message);
+      // 4. Esperar brevemente a que el trigger procese, luego actualizar nombre/cd/rol
+      await new Promise(r => setTimeout(r, 800));
+      const { error: upErr } = await sb.from('mql_usuarios')
+        .update({ nombre, cd: cd || null, rol, activo: true })
+        .eq('id', newUid);
+      if (upErr) throw new Error('Usuario creado pero error al actualizar perfil: ' + upErr.message);
     }
 
     closeModal();
