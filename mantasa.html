@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ManTASA 2.0 · Control de Mantas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+/* ===== MAQUILOG DESIGN TOKENS ===== */
+:root{
+  --bg:#060e1a;
+  --bg2:#0a1628;
+  --card:#0d1f35;
+  --card2:#0f2440;
+  --line:rgba(99,179,237,0.12);
+  --line-s:rgba(255,255,255,0.05);
+  --accent:#3b82f6;
+  --accent-dim:rgba(59,130,246,0.15);
+  --green:#22c55e;
+  --green-dim:rgba(34,197,94,0.14);
+  --amber:#f59e0b;
+  --amber-dim:rgba(245,158,11,0.14);
+  --red:#ef4444;
+  --red-dim:rgba(239,68,68,0.14);
+  --cyan:#38bdf8;
+  --cyan-dim:rgba(56,189,248,0.12);
+  --purple:#a78bfa;
+  --purple-dim:rgba(167,139,250,0.14);
+  --text:#e2eaf4;
+  --muted:#64748b;
+  --muted2:#4a5568;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.5;
+}
+.mono{font-family:'IBM Plex Mono',monospace;letter-spacing:.2px;}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:linear-gradient(90deg,#060e1a 0%,#0a1628 100%);
+  border-bottom:1px solid var(--line);
+  padding:0 28px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;top:0;z-index:30;
+  box-shadow:0 1px 20px rgba(0,0,0,0.5);
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.topbar-back{
+  display:inline-flex;align-items:center;gap:6px;
+  color:var(--muted);font-size:12px;font-weight:500;
+  text-decoration:none;padding:5px 10px;border-radius:6px;
+  border:1px solid var(--line);transition:all .15s;
+}
+.topbar-back:hover{color:var(--text);border-color:rgba(99,179,237,0.3);}
+.topbar-title{
+  font-size:15px;font-weight:700;color:var(--text);
+  display:flex;align-items:center;gap:10px;
+}
+.topbar-title svg{opacity:.85;}
+.topbar-badge{
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;
+  background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.3);
+  letter-spacing:.4px;text-transform:uppercase;
+}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.status-pill{
+  font-size:11px;font-weight:700;letter-spacing:.3px;
+  background:var(--green-dim);color:var(--green);
+  border:1px solid rgba(34,197,94,0.35);
+  padding:4px 11px;border-radius:20px;white-space:nowrap;
+}
+.status-pill.err{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,0.4);}
+.status-pill.warn{background:var(--amber-dim);color:var(--amber);border-color:rgba(245,158,11,0.4);}
+.btn-logout{
+  background:var(--red-dim);border:1px solid rgba(239,68,68,0.35);
+  color:#fca5a5;font-size:11px;font-weight:700;
+  padding:5px 12px;border-radius:20px;cursor:pointer;
+  transition:all .15s;
+}
+.btn-logout:hover{background:rgba(239,68,68,0.25);}
+
+/* ===== TABS ===== */
+.tabs-bar{
+  background:var(--bg2);border-bottom:1px solid var(--line);
+  padding:0 28px;display:flex;align-items:center;gap:4px;
+}
+.tab-btn{
+  border:none;background:transparent;color:var(--muted);
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:12.5px;font-weight:600;padding:14px 18px;
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .15s;display:flex;align-items:center;gap:7px;
+  letter-spacing:.2px;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn svg{width:14px;height:14px;}
+
+/* ===== LAYOUT ===== */
+main{max-width:1200px;margin:0 auto;padding:28px 28px 80px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+
+/* ===== SECTION LABEL ===== */
+.section-label{
+  font-size:10px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1.4px;
+  margin:28px 0 14px;display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line-s);}
+.section-label:first-child{margin-top:0;}
+
+/* ===== CARDS ===== */
+.card{
+  background:var(--card);border-radius:12px;
+  border:1px solid var(--line);
+  box-shadow:0 2px 16px rgba(0,0,0,0.3);
+  padding:20px;
+}
+.card-sm{padding:14px 16px;}
+
+/* ===== KPIs ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;}
+@media(min-width:900px){.kpi-row{grid-template-columns:repeat(4,1fr);}}
+.kpi{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:16px;position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--accent);opacity:.7;
+}
+.kpi.g::before{background:var(--green);}
+.kpi.a::before{background:var(--amber);}
+.kpi.r::before{background:var(--red);}
+.kpi .n{font-size:30px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',monospace;}
+.kpi.g .n{color:var(--green);}
+.kpi.a .n{color:var(--amber);}
+.kpi.r .n{color:var(--red);}
+.kpi .l{font-size:10px;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ===== CD GRID ===== */
+.cd-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+@media(min-width:700px){.cd-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1000px){.cd-grid{grid-template-columns:repeat(3,1fr);}}
+.tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:600px){.tipo-grid{grid-template-columns:repeat(3,1fr);}}
+.cd-box{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;
+}
+.cd-box .cd-name{font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
+.cd-box .cd-total{font-size:26px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;}
+.cd-box .cd-sub{font-size:10.5px;color:var(--muted);margin-top:2px;}
+.bar{height:5px;border-radius:4px;background:rgba(255,255,255,0.05);margin-top:10px;overflow:hidden;display:flex;}
+.bar span{display:block;height:100%;}
+.b-disp{background:var(--green);}
+.b-uso{background:var(--cyan);}
+.b-sucia{background:var(--amber);}
+.b-baja{background:var(--red);}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+
+/* ===== TABLE ===== */
+.filters-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.table-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{
+  text-align:left;color:var(--muted);font-size:9.5px;
+  text-transform:uppercase;letter-spacing:.7px;font-weight:700;
+  padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+td{padding:10px 8px;border-bottom:1px solid var(--line-s);color:#c8d8e8;}
+tr:hover td{background:rgba(59,130,246,0.03);}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:12px;}
+
+/* ===== BADGES ===== */
+.badge{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:20px;font-size:10.5px;
+  font-weight:700;border:1px solid transparent;white-space:nowrap;
+}
+.b-disp-pill{background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.3);}
+.b-uso-pill{background:var(--cyan-dim);color:var(--cyan);border-color:rgba(56,189,248,0.3);}
+.b-sucia-pill{background:var(--amber-dim);color:var(--amber);border-color:rgba(245,158,11,0.3);}
+.b-baja-pill{background:var(--red-dim);color:var(--red);border-color:rgba(239,68,68,0.3);}
+.b-default-pill{background:rgba(255,255,255,0.05);color:var(--muted);border-color:var(--line);}
+
+/* ===== ALERTS ===== */
+.alert-row{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:11px 0;border-bottom:1px solid var(--line-s);font-size:12.5px;
+}
+.alert-row:last-child{border-bottom:none;}
+.alert-icon{font-size:14px;line-height:1.4;}
+
+/* ===== OPERACION SECTION ===== */
+.op-panel{max-width:560px;}
+.op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.op-btn{
+  border:1px solid var(--line);background:var(--card);
+  border-radius:12px;padding:16px 10px;text-align:center;
+  cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted);
+  transition:all .15s;
+}
+.op-btn:hover{border-color:rgba(99,179,237,0.3);color:var(--text);}
+.op-btn.selected{
+  border-color:var(--accent);
+  background:var(--accent-dim);
+  color:#fff;
+  box-shadow:0 0 16px rgba(59,130,246,0.2);
+}
+.op-btn .icon{font-size:20px;display:block;margin-bottom:7px;}
+
+/* ===== SCAN ===== */
+.scan-row{display:flex;gap:8px;margin-bottom:4px;}
+.scan-row input{flex:1;}
+.btn-scan{
+  background:var(--accent);color:#fff;border:none;
+  border-radius:8px;padding:0 16px;font-size:15px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn-scan:hover{background:#2563eb;}
+
+/* ===== FORM ===== */
+.form-field{margin-bottom:14px;}
+.form-field label{
+  display:block;font-size:10px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;
+}
+input[type=text],input[type=password],input[type=search],select{
+  width:100%;font-family:'IBM Plex Sans',sans-serif;
+  font-size:13px;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--line);background:#060e1a;
+  color:var(--text);transition:border-color .15s;
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+select{cursor:pointer;}
+
+/* ===== BUTTONS ===== */
+.btn-primary{
+  width:100%;font-family:'IBM Plex Sans',sans-serif;
+  background:var(--green);color:#052010;
+  border:none;border-radius:9px;padding:12px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  letter-spacing:.3px;transition:all .15s;margin-top:4px;
+}
+.btn-primary:hover:not(:disabled){background:#16a34a;}
+.btn-primary:disabled{
+  background:rgba(255,255,255,0.05);color:var(--muted);
+  cursor:not-allowed;
+}
+
+/* ===== MANTA PREVIEW ===== */
+.manta-preview{
+  background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);
+  border-radius:10px;padding:14px 16px;margin-bottom:14px;
+}
+.manta-preview .m-id{
+  font-family:'IBM Plex Mono',monospace;font-weight:700;
+  font-size:14px;color:#fff;margin-bottom:8px;
+}
+.manta-preview .m-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--muted);padding:4px 0;
+  border-bottom:1px solid var(--line-s);
+}
+.manta-preview .m-row:last-child{border-bottom:none;}
+.m-val{color:var(--text);}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;left:50%;bottom:28px;
+  transform:translateX(-50%) translateY(20px);
+  background:#0d1f35;color:#fff;padding:12px 22px;
+  border-radius:10px;font-size:13px;
+  border:1px solid var(--accent);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  opacity:0;transition:all .25s;z-index:100;max-width:92%;
+  pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.err{border-color:var(--red);}
+
+/* ===== LOGIN ===== */
+.login-wrap{
+  min-height:calc(100vh - 60px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.login-card{max-width:380px;width:100%;}
+.login-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:20px;}
+.login-err{font-size:12px;color:var(--red);margin-bottom:12px;display:none;}
+.footnote{font-size:11px;color:var(--muted);margin-top:16px;text-align:center;}
+
+/* ===== CONFIG BANNER ===== */
+.config-banner{
+  background:var(--red-dim);border:1px solid rgba(239,68,68,0.35);
+  color:#fca5a5;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;
+}
+.config-banner code{background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;color:#fff;}
+
+/* ===== TWO-COL LAYOUT ===== */
+.two-col{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:860px){.two-col{grid-template-columns:1.6fr 1fr;}}
+
+/* ===== HISTORIAL ===== */
+.hist-row{
+  display:flex;gap:10px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line-s);font-size:12px;
+}
+.hist-row:last-child{border-bottom:none;}
+.hist-id{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cyan);min-width:120px;}
+.hist-op{color:var(--muted);flex:1;}
+
+/* ===== STATUS INLINE ===== */
+.scan-hint{font-size:11.5px;color:var(--muted);min-height:18px;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="topbar-back">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Inicio
+    </a>
+    <div class="topbar-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M2 10h20M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2M12 14v2M9 14h6"/></svg>
+      ManTASA 2.0
+      <span class="topbar-badge">Control de mantas</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill warn" id="status-pill">Conectando…</div>
+    <button class="btn-logout" id="btn-logout" onclick="handleLogout()" style="display:none;">Salir</button>
+  </div>
+</header>
+
+<!-- TABS BAR (hidden until login) -->
+<div class="tabs-bar" id="tabs-bar" style="display:none;">
+  <button class="tab-btn" id="btn-operacion" onclick="setTab('operacion')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Operación
+  </button>
+  <button class="tab-btn" id="btn-visibilidad" onclick="setTab('visibilidad')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+    Visibilidad
+  </button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none;">
+  <div class="login-wrap">
+    <div class="card login-card">
+      <div class="login-title">Iniciar sesión</div>
+      <div class="form-field">
+        <label>Usuario</label>
+        <input type="text" id="login-user" placeholder="ej. almacen.callao" autocomplete="username">
+      </div>
+      <div class="form-field">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') handleLogin()">
+      </div>
+      <div class="login-err" id="login-err"></div>
+      <button class="btn-primary" id="login-btn" onclick="handleLogin()">Ingresar</button>
+      <p class="footnote">Acceso restringido — solo personal autorizado de almacén TASA.</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<main id="main-app" style="display:none;">
+  <div class="config-banner" id="config-banner" style="display:none;">
+    ⚠ Falta configurar la conexión a Supabase. Reemplaza <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> en el <code>&lt;script&gt;</code>.
+  </div>
+
+  <!-- TAB: OPERACIÓN -->
+  <div class="tab-panel" id="tab-operacion">
+    <div class="op-panel">
+      <div class="section-label">¿Qué operación deseas registrar?</div>
+      <div class="op-grid">
+        <div class="op-btn selected" data-op="Ingreso" onclick="selectOp('Ingreso')">
+          <span class="icon">📥</span>Ingreso
+        </div>
+        <div class="op-btn" data-op="Salida" onclick="selectOp('Salida')">
+          <span class="icon">📤</span>Salida
+        </div>
+        <div class="op-btn" data-op="Cambio de estado" onclick="selectOp('Cambio de estado')">
+          <span class="icon">🔄</span>Cambio de estado
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-field" style="margin-bottom:12px;">
+          <label>Escanear / ingresar código</label>
+          <div class="scan-row">
+            <input type="text" id="scan-input" placeholder="Ej. TAS-SUP-POP-01-00011" class="mono" oninput="onScanInput()">
+            <button class="btn-scan" onclick="randomScan()" title="Simular escaneo (manta al azar)">▤</button>
+          </div>
+          <div class="scan-hint" id="scan-hint"></div>
+        </div>
+
+        <div id="manta-preview-box"></div>
+        <div id="op-fields"></div>
+
+        <button class="btn-primary" id="submit-btn" onclick="submitOp()" disabled>Confirmar</button>
+      </div>
+      <p class="footnote">▤ simula el escaneo de un código QR real (trae una manta real de la base). En producción, el campo se llena con la cámara del celular.</p>
+    </div>
+  </div>
+
+  <!-- TAB: VISIBILIDAD -->
+  <div class="tab-panel" id="tab-visibilidad">
+
+    <div class="section-label">Resumen de red</div>
+    <div class="kpi-row" id="kpis"><div class="empty">Cargando…</div></div>
+
+    <div class="section-label">Stock por Centro de Distribución</div>
+    <div class="cd-grid" id="cd-grid"><div class="empty">Cargando…</div></div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>Disponible</span>
+      <span><i class="dot" style="background:var(--cyan)"></i>En uso</span>
+      <span><i class="dot" style="background:var(--amber)"></i>Sucia</span>
+      <span><i class="dot" style="background:var(--red)"></i>Para baja</span>
+    </div>
+
+    <div class="section-label" style="margin-top:24px;">Stock por tipo de manta</div>
+    <div class="tipo-grid" id="tipo-grid"><div class="empty">Cargando…</div></div>
+
+    <div class="section-label" style="margin-top:24px;">Detalle por planta y tipo</div>
+    <div class="card">
+      <div class="table-scroll">
+        <table id="detalle-table">
+          <thead><tr><th>Planta</th></tr></thead>
+          <tbody><tr><td><div class="empty">Cargando…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:24px;">
+      <div>
+        <div class="section-label">Inventario</div>
+        <div class="card">
+          <div class="filters-row">
+            <input type="search" placeholder="Buscar código…" id="f-search" oninput="debouncedTable()" style="width:160px;">
+            <select id="f-planta" onchange="renderTable()"><option value="">Todas las plantas</option></select>
+            <select id="f-tipo" onchange="renderTable()"><option value="">Todo tipo</option></select>
+            <select id="f-estado" onchange="renderTable()">
+              <option value="">Todo estado</option>
+              <option>DISPONIBLE</option>
+              <option>EN USO</option>
+              <option>SUCIA</option>
+              <option>PARA BAJA</option>
+            </select>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Código</th><th>Planta</th><th>Prov.</th><th>Tipo</th><th>Estado</th></tr></thead>
+              <tbody id="table-body"><tr><td colspan="5"><div class="empty">Cargando…</div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">Últimos movimientos</div>
+        <div class="card" id="historial-card"><div class="empty">Cargando…</div></div>
+        <div class="section-label" style="margin-top:20px;">Alertas</div>
+        <div class="card" id="alertas-card"><div class="empty">Cargando…</div></div>
+      </div>
+    </div>
+
+    <p class="footnote" style="margin-top:24px;">Conectado en vivo a Supabase — tablas <span class="mono">mantas</span> y <span class="mono">movimientos_mantas</span>.</p>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== CONFIGURACIÓN ===== */
+const SUPABASE_URL  = "https://whhdxoenojmzuobecavm.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndoaGR4b2Vub2ptenVvYmVjYXZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDM4NDYsImV4cCI6MjEwMDQxOTg0Nn0.4cfQdy-w5MkYclDDHMD1muYQg6M93wgWgYm1DqSOpdo";
+
+const CONFIGURED = SUPABASE_URL !== "SUPABASE_URL" && SUPABASE_ANON_KEY !== "SUPABASE_ANON_KEY";
+let sb = null;
+
+const memStore = {};
+const memAdapter = {
+  getItem: k => memStore[k] ?? null,
+  setItem: (k,v) => { memStore[k]=v; },
+  removeItem: k => { delete memStore[k]; }
+};
+
+if (CONFIGURED) {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: memAdapter, persistSession: true, autoRefreshToken: true }
+  });
+}
+
+let PLANTAS = [], PLANTAS_ALL = [], PROVEEDORES = [];
+const TIPOS_LABEL = { SUP:"Superior", INF:"Inferior", CAP:"Capuchón" };
+function tipoLabel(c){ return TIPOS_LABEL[c] || c || "—"; }
+
+/* ===== BADGE ESTADO ===== */
+function stateBadge(val){
+  if (!val) return `<span class="badge b-default-pill">—</span>`;
+  const v = val.toUpperCase();
+  if (v==="DISPONIBLE") return `<span class="badge b-disp-pill">Disponible</span>`;
+  if (v==="EN USO")     return `<span class="badge b-uso-pill">En uso</span>`;
+  if (v==="SUCIA")      return `<span class="badge b-sucia-pill">Sucia</span>`;
+  if (v==="PARA BAJA")  return `<span class="badge b-baja-pill">Para baja</span>`;
+  return `<span class="badge b-default-pill">${val}</span>`;
+}
+
+/* ===== AUTH ===== */
+function usuarioToEmail(u){
+  const v = u.trim().toLowerCase();
+  return v.includes("@") ? v : v.replace(/\s+/g,".") + "@mantasa.local";
+}
+
+async function handleLogin(){
+  const user = document.getElementById("login-user").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  const errEl = document.getElementById("login-err");
+  const btn   = document.getElementById("login-btn");
+  errEl.style.display = "none";
+  if (!user || !pass){ errEl.textContent="Ingresa usuario y contraseña."; errEl.style.display="block"; return; }
+  btn.disabled=true; btn.textContent="Ingresando…";
+  const { data, error } = await sb.auth.signInWithPassword({ email: usuarioToEmail(user), password: pass });
+  btn.disabled=false; btn.textContent="Ingresar";
+  if (error){
+    errEl.textContent = "Error: " + (error.message||"usuario o contraseña incorrectos");
+    errEl.style.display="block"; return;
+  }
+  await onAuthenticated();
+}
+
+async function handleLogout(){
+  await sb.auth.signOut();
+  document.getElementById("main-app").style.display="none";
+  document.getElementById("tabs-bar").style.display="none";
+  document.getElementById("btn-logout").style.display="none";
+  document.getElementById("login-screen").style.display="block";
+  document.getElementById("login-user").value="";
+  document.getElementById("login-pass").value="";
+  document.getElementById("status-pill").textContent="Sesión cerrada";
+}
+
+async function onAuthenticated(){
+  document.getElementById("login-screen").style.display="none";
+  document.getElementById("main-app").style.display="block";
+  document.getElementById("tabs-bar").style.display="flex";
+  document.getElementById("btn-logout").style.display="inline-block";
+  await loadAppData();
+}
+
+/* ===== BOOT ===== */
+async function boot(){
+  const pill = document.getElementById("status-pill");
+  if (!CONFIGURED){
+    document.getElementById("config-banner").style.display="block";
+    pill.textContent="Sin conectar"; pill.className="status-pill err"; return;
+  }
+  const { data: session } = await sb.auth.getSession();
+  if (session && session.session){
+    await onAuthenticated();
+  } else {
+    document.getElementById("login-screen").style.display="block";
+    pill.textContent="Inicia sesión"; pill.className="status-pill warn";
+  }
+}
+
+async function loadAppData(){
+  const pill = document.getElementById("status-pill");
+  try {
+    const { data: p, error: e1 } = await sb.from("plantas").select("nombre,es_cd").order("nombre");
+    if (e1) throw e1;
+    PLANTAS_ALL = p.map(r=>r.nombre);
+    PLANTAS = p.filter(r=>r.es_cd).map(r=>r.nombre);
+    const { data: pv, error: e2 } = await sb.from("proveedores").select("codigo").order("codigo");
+    if (e2) throw e2;
+    PROVEEDORES = pv.map(r=>r.codigo);
+    pill.textContent = PLANTAS.length + " CDs";
+    pill.className = "status-pill";
+  } catch(err){
+    pill.textContent="Error de conexión"; pill.className="status-pill err";
+    toast("No se pudo conectar: " + (err.message||err), true); return;
+  }
+  populateFilters();
+  renderOpFields();
+  setTab(window.innerWidth < 860 ? "operacion" : "visibilidad");
+}
+
+/* ===== TABS ===== */
+let currentTab = "operacion";
+function setTab(tab){
+  currentTab = tab;
+  document.getElementById("tab-operacion").classList.toggle("active", tab==="operacion");
+  document.getElementById("tab-visibilidad").classList.toggle("active", tab==="visibilidad");
+  document.getElementById("btn-operacion").classList.toggle("active", tab==="operacion");
+  document.getElementById("btn-visibilidad").classList.toggle("active", tab==="visibilidad");
+  if (tab==="visibilidad" && CONFIGURED) renderAll();
+}
+
+/* ===== OPERACIÓN ===== */
+let selectedOp = "Ingreso", currentManta = null, scanTimer;
+
+function selectOp(op){
+  selectedOp = op;
+  document.querySelectorAll(".op-btn").forEach(b=> b.classList.toggle("selected", b.dataset.op===op));
+  renderOpFields();
+}
+
+function renderOpFields(){
+  const box = document.getElementById("op-fields");
+  let html = "";
+  if (selectedOp === "Ingreso"){
+    html += mkSelect("op-planta","Planta destino", PLANTAS);
+    html += mkSelect("op-estado","Estado de ingreso", ["DISPONIBLE","EN USO","SUCIA","PARA BAJA"]);
+  } else if (selectedOp === "Salida"){
+    html += mkSelect("op-planta","Planta destino", PLANTAS);
+  } else if (selectedOp === "Cambio de estado"){
+    html += mkSelect("op-estado","Nuevo estado", ["DISPONIBLE","EN USO","SUCIA","PARA BAJA"]);
+  }
+  box.innerHTML = html;
+}
+function mkSelect(id,label,opts){
+  return `<div class="form-field"><label>${label}</label><select id="${id}">`+
+    opts.map(o=>`<option value="${o}">${o}</option>`).join("")+
+    `</select></div>`;
+}
+
+function onScanInput(){
+  clearTimeout(scanTimer);
+  const id = document.getElementById("scan-input").value.trim();
+  const hint = document.getElementById("scan-hint");
+  if (!id){
+    document.getElementById("manta-preview-box").innerHTML="";
+    document.getElementById("submit-btn").disabled=true;
+    hint.textContent=""; return;
+  }
+  hint.textContent="Buscando…";
+  scanTimer = setTimeout(()=> previewManta(id), 350);
+}
+
+async function previewManta(id){
+  const box = document.getElementById("manta-preview-box");
+  const btn = document.getElementById("submit-btn");
+  const hint = document.getElementById("scan-hint");
+  const { data, error } = await sb.from("mantas").select("*").eq("id_manta", id).maybeSingle();
+  if (error || !data){
+    box.innerHTML=""; btn.disabled=true;
+    hint.textContent="No se encontró ninguna manta con ese código.";
+    currentManta=null; return;
+  }
+  hint.textContent="";
+  currentManta = data;
+  box.innerHTML = `<div class="manta-preview">
+    <div class="m-id">${data.id_manta}</div>
+    <div class="m-row"><span>Planta actual</span><span class="m-val">${data.planta_actual||"—"}</span></div>
+    <div class="m-row"><span>Estado actual</span><span>${stateBadge(data.disponibilidad||data.estado_calidad||"—")}</span></div>
+    <div class="m-row"><span>Tipo</span><span class="m-val">${tipoLabel(data.tipo_manta)}</span></div>
+  </div>`;
+  btn.disabled = false;
+}
+
+async function randomScan(){
+  const hint = document.getElementById("scan-hint");
+  hint.textContent="Escaneando…";
+  const { data, error } = await sb.from("mantas").select("id_manta").limit(50);
+  if (error || !data || !data.length){ hint.textContent="No se pudo leer la base."; return; }
+  const pick = data[Math.floor(Math.random()*data.length)];
+  document.getElementById("scan-input").value = pick.id_manta;
+  previewManta(pick.id_manta);
+}
+
+async function submitOp(){
+  if (!currentManta) return;
+  const id = currentManta.id_manta;
+  const btn = document.getElementById("submit-btn");
+  btn.disabled=true; btn.textContent="Guardando…";
+
+  const mov = {
+    id_manta: id,
+    tipo_movimiento: selectedOp,
+    planta_origen: currentManta.planta_actual,
+    planta_destino: currentManta.planta_actual,
+    disponibilidad_anterior: currentManta.disponibilidad,
+    disponibilidad_nueva: currentManta.disponibilidad,
+    estado_anterior: currentManta.estado_calidad,
+    estado_nuevo: currentManta.estado_calidad,
+    nombre_trabajador: "Demo — " + new Date().toLocaleDateString()
+  };
+  const update = {};
+
+  if (selectedOp === "Ingreso"){
+    update.planta_actual  = document.getElementById("op-planta").value;
+    update.disponibilidad = document.getElementById("op-estado").value;
+    update.estado_calidad = document.getElementById("op-estado").value;
+    mov.planta_destino    = update.planta_actual;
+    mov.disponibilidad_nueva = update.disponibilidad;
+    mov.estado_nuevo      = update.estado_calidad;
+  } else if (selectedOp === "Salida"){
+    update.planta_actual  = document.getElementById("op-planta").value;
+    mov.planta_destino    = update.planta_actual;
+  } else if (selectedOp === "Cambio de estado"){
+    const nuevoEstado     = document.getElementById("op-estado").value;
+    update.disponibilidad = nuevoEstado;
+    update.estado_calidad = nuevoEstado;
+    mov.disponibilidad_nueva = nuevoEstado;
+    mov.estado_nuevo      = nuevoEstado;
+  }
+
+  const { error: e1 } = await sb.from("mantas").update(update).eq("id_manta", id);
+  if (e1){ toast("Error al actualizar: " + e1.message, true); btn.disabled=false; btn.textContent="Confirmar"; return; }
+  const { error: e2 } = await sb.from("movimientos_mantas").insert(mov);
+  if (e2) console.warn("Historial no registrado:", e2.message);
+
+  toast(`${selectedOp} registrado para ${id}.`);
+  document.getElementById("scan-input").value="";
+  document.getElementById("manta-preview-box").innerHTML="";
+  document.getElementById("scan-hint").textContent="";
+  currentManta=null; btn.disabled=true; btn.textContent="Confirmar";
+}
+
+/* ===== TOAST ===== */
+let toastTimer;
+function toast(msg, isErr=false){
+  const el = document.getElementById("toast");
+  el.textContent=msg;
+  el.className="toast show"+(isErr?" err":"");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.className="toast",3200);
+}
+
+/* ===== VISIBILIDAD ===== */
+async function renderAll(){
+  renderKPIs();
+  renderCDGrid();
+  renderTipoGrid();
+  renderDetalle();
+  renderTable();
+  renderHistorial();
+  renderAlertas();
+}
+
+async function count(filters={}){
+  let q = sb.from("mantas").select("*",{count:"exact",head:true});
+  Object.entries(filters).forEach(([k,v])=> q=q.eq(k,v));
+  const { count: c } = await q;
+  return c||0;
+}
+
+async function renderKPIs(){
+  const el = document.getElementById("kpis");
+  const [total,disp,uso,sucia] = await Promise.all([
+    count(), count({disponibilidad:"DISPONIBLE"}),
+    count({disponibilidad:"EN USO"}), count({disponibilidad:"SUCIA"})
+  ]);
+  el.innerHTML = `
+    <div class="kpi"><div class="n">${total}</div><div class="l">Total en red</div></div>
+    <div class="kpi g"><div class="n">${disp}</div><div class="l">Disponibles</div></div>
+    <div class="kpi a"><div class="n">${uso}</div><div class="l">En uso</div></div>
+    <div class="kpi r"><div class="n">${sucia}</div><div class="l">Sucias</div></div>
+  `;
+}
+
+async function renderCDGrid(){
+  const el = document.getElementById("cd-grid");
+  const { data, error } = await sb.from("v_stock_por_planta").select("*").eq("es_cd",true).order("total",{ascending:false});
+  if (error||!data){ el.innerHTML=`<div class="empty">No se pudo cargar.</div>`; return; }
+  const tot = data.reduce((a,r)=>a+r.total,0)||1;
+  el.innerHTML = data.map(r=>{
+    const pct=Math.round(r.total/tot*100);
+    const wd=r.total?(r.disponibles/r.total*100):0;
+    const wu=r.total?(r.en_uso/r.total*100):0;
+    const ws=r.total?(r.sucias/r.total*100):0;
+    return `<div class="cd-box">
+      <div class="cd-name">${r.planta}</div>
+      <div class="cd-total">${r.total}</div>
+      <div class="cd-sub">${pct}% de la red</div>
+      <div class="bar"><span class="b-disp" style="width:${wd}%"></span><span class="b-uso" style="width:${wu}%"></span><span class="b-sucia" style="width:${ws}%"></span></div>
+    </div>`;
+  }).join("");
+}
+
+async function renderTipoGrid(){
+  const el = document.getElementById("tipo-grid");
+  const { data, error } = await sb.from("v_stock_por_tipo").select("*").order("total",{ascending:false});
+  if (error||!data){ el.innerHTML=`<div class="empty">No se pudo cargar.</div>`; return; }
+  const tot = data.reduce((a,r)=>a+r.total,0)||1;
+  el.innerHTML = data.map(r=>{
+    const pct=Math.round(r.total/tot*100);
+    const wd=r.total?(r.disponibles/r.total*100):0;
+    const wu=r.total?(r.en_uso/r.total*100):0;
+    const ws=r.total?(r.sucias/r.total*100):0;
+    return `<div class="cd-box">
+      <div class="cd-name">${r.tipo}</div>
+      <div class="cd-total">${r.total}</div>
+      <div class="cd-sub">${pct}% del total</div>
+      <div class="bar"><span class="b-disp" style="width:${wd}%"></span><span class="b-uso" style="width:${wu}%"></span><span class="b-sucia" style="width:${ws}%"></span></div>
+    </div>`;
+  }).join("");
+}
+
+async function renderDetalle(){
+  const table = document.getElementById("detalle-table");
+  const { data, error } = await sb.from("v_stock_por_planta_tipo").select("*").eq("es_cd",true);
+  if (error||!data){ table.querySelector("tbody").innerHTML=`<tr><td><div class="empty">No se pudo cargar.</div></td></tr>`; return; }
+  if (!data.length){ table.querySelector("tbody").innerHTML=`<tr><td><div class="empty">Sin datos.</div></td></tr>`; return; }
+  const tipos = [...new Set(data.map(r=>r.tipo))].sort();
+  const plantas = [...new Set(data.map(r=>r.planta))].sort();
+  const lu = {};
+  data.forEach(r=> lu[r.planta+"|"+r.tipo]=r.total);
+  table.querySelector("thead").innerHTML = `<tr><th>Planta</th>${tipos.map(t=>`<th>${t}</th>`).join("")}<th>Total</th></tr>`;
+  table.querySelector("tbody").innerHTML = plantas.map(p=>{
+    let rt=0;
+    const cells = tipos.map(t=>{ const v=lu[p+"|"+t]||0; rt+=v; return `<td>${v||"—"}</td>`; }).join("");
+    return `<tr><td><b>${p}</b></td>${cells}<td><b>${rt}</b></td></tr>`;
+  }).join("");
+}
+
+function populateFilters(){
+  const sp = document.getElementById("f-planta");
+  while(sp.options.length>1) sp.remove(1);
+  PLANTAS_ALL.forEach(p=>{ const o=new Option(p,p); sp.appendChild(o); });
+  const st = document.getElementById("f-tipo");
+  while(st.options.length>1) st.remove(1);
+  Object.entries(TIPOS_LABEL).forEach(([c,n])=>{ const o=new Option(n,c); st.appendChild(o); });
+}
+
+let tableTimer;
+function debouncedTable(){ clearTimeout(tableTimer); tableTimer=setTimeout(renderTable,350); }
+
+async function renderTable(){
+  const q  = (document.getElementById("f-search").value||"").trim();
+  const fp = document.getElementById("f-planta").value;
+  const ft = document.getElementById("f-tipo").value;
+  const fe = document.getElementById("f-estado").value;
+  const tb = document.getElementById("table-body");
+  tb.innerHTML=`<tr><td colspan="5"><div class="empty">Cargando…</div></td></tr>`;
+  let query = sb.from("mantas").select("id_manta,planta_actual,proveedor_codigo,tipo_manta,disponibilidad").limit(60);
+  if (q)  query = query.ilike("id_manta",`%${q}%`);
+  if (fp) query = query.eq("planta_actual",fp);
+  if (ft) query = query.eq("tipo_manta",ft);
+  if (fe) query = query.eq("disponibilidad",fe);
+  const { data, error } = await query;
+  if (error||!data){ tb.innerHTML=`<tr><td colspan="5"><div class="empty">Error al consultar.</div></td></tr>`; return; }
+  if (!data.length){ tb.innerHTML=`<tr><td colspan="5"><div class="empty">Sin resultados.</div></td></tr>`; return; }
+  tb.innerHTML = data.map(m=>`<tr>
+    <td class="mono">${m.id_manta}</td>
+    <td>${m.planta_actual||"—"}</td>
+    <td>${m.proveedor_codigo||"—"}</td>
+    <td>${tipoLabel(m.tipo_manta)}</td>
+    <td>${stateBadge(m.disponibilidad||"—")}</td>
+  </tr>`).join("");
+}
+
+async function renderHistorial(){
+  const el = document.getElementById("historial-card");
+  const { data, error } = await sb.from("movimientos_mantas")
+    .select("id_manta,tipo_movimiento,planta_origen,planta_destino,disponibilidad_nueva,creado_en")
+    .order("creado_en",{ascending:false}).limit(8);
+  if (error||!data){ el.innerHTML=`<div class="empty">Error al consultar.</div>`; return; }
+  if (!data.length){ el.innerHTML=`<div class="empty">Sin movimientos aún.</div>`; return; }
+  el.innerHTML = data.map(mv=>`<div class="hist-row">
+    <span class="hist-id">${mv.id_manta}</span>
+    <span class="hist-op">${mv.tipo_movimiento}${mv.planta_origen!==mv.planta_destino?" ("+mv.planta_origen+" → "+mv.planta_destino+")":""}</span>
+    ${stateBadge(mv.disponibilidad_nueva||"—")}
+  </div>`).join("");
+}
+
+async function renderAlertas(){
+  const el = document.getElementById("alertas-card");
+  const [
+    {data:suciasData},
+    {count:sinMov},
+    {count:transito}
+  ] = await Promise.all([
+    sb.from("mantas").select("planta_actual").eq("disponibilidad","SUCIA"),
+    sb.from("mantas").select("*",{count:"exact",head:true}).lt("actualizado_en",new Date(Date.now()-30*86400000).toISOString()),
+    sb.from("mantas").select("*",{count:"exact",head:true}).eq("planta_actual","En transito")
+  ]);
+  let html="";
+  if (suciasData){
+    const pp={};
+    suciasData.forEach(r=> pp[r.planta_actual]=(pp[r.planta_actual]||0)+1);
+    Object.entries(pp).forEach(([p,n])=>{
+      if(n>=5) html+=`<div class="alert-row" style="color:var(--red)"><span class="alert-icon">⚠</span><span>${n} mantas sucias acumuladas en <b>${p}</b></span></div>`;
+    });
+  }
+  if (sinMov>0) html+=`<div class="alert-row"><span class="alert-icon" style="color:var(--amber)">⏱</span><span>${sinMov} mantas sin actualizar hace más de 30 días</span></div>`;
+  if (transito>0) html+=`<div class="alert-row"><span class="alert-icon" style="color:var(--cyan)">📍</span><span>${transito} mantas "en tránsito" sin CD confirmado</span></div>`;
+  el.innerHTML = html || `<div class="empty">Sin alertas activas.</div>`;
+}
+
+boot();
+</script>
+</body>
+</html>
