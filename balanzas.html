@@ -724,6 +724,19 @@ window.addEventListener('DOMContentLoaded',()=>{
   const saved=localStorage.getItem('sup_name');
   if(saved)document.getElementById('sup-name').value=saved;
   document.getElementById('sup-name').addEventListener('input',function(){localStorage.setItem('sup_name',this.value);});
+  // Si el usuario tiene planta asignada, pre-seleccionar el filtro
+  if(MQL_PLANTA){
+    const sel=document.getElementById('f-planta');
+    if(sel){
+      // Buscar la opción cuyo value coincida con MQL_PLANTA
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value.toUpperCase()===MQL_PLANTA.toUpperCase()||
+           sel.options[i].text.toUpperCase()===MQL_PLANTA.toUpperCase()){
+          sel.selectedIndex=i; break;
+        }
+      }
+    }
+  }
   cargarDatos();
 });
 </script>
