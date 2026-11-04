@@ -124,7 +124,7 @@ td{padding:12px 16px;font-size:13px;color:var(--text)}
   <div class="page-sub">Administra los accesos al sistema MaquiLog</div>
 
   <div class="top-bar">
-    <input class="search-box" id="search" placeholder="Buscar por nombre o correo…" oninput="filterTable()" autocomplete="off">
+    <input class="search-box" id="search" type="search" placeholder="Buscar por nombre o correo…" oninput="filterTable()" autocomplete="off" name="mql-search-unique">
     <button class="btn" onclick="openModal()">+ Nuevo usuario</button>
   </div>
 
@@ -229,6 +229,8 @@ const sb = createClient(SB_URL, SB_KEY);
     }
   } catch(e) { console.warn('No se pudo restaurar sesión:', e.message); }
 
+  // Limpiar buscador al cargar (evita autocompletado del browser)
+  setTimeout(() => { const s = document.getElementById('search'); if(s) s.value = ''; }, 50);
   loadUsers();
 })();
 
