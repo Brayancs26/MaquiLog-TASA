@@ -246,6 +246,18 @@ input.fld:focus{border-color:var(--accent);}
 const SUPA_URL='https://njmswjinwrcxsfduchsc.supabase.co';
 const SUPA_KEY='sb_publishable_KKD-gJzg0Urws7ff-h5XFg_91sL146J';
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ── CONTROL DE ACCESO POR CD ──────────────────────────────────
+const _mqlRaw = sessionStorage.getItem('mql_user');
+const MQL_USER = _mqlRaw ? JSON.parse(_mqlRaw) : null;
+const MQL_IS_ADMIN = MQL_USER && MQL_USER.rol === 'admin';
+const MQL_CD = MQL_USER ? (MQL_USER.cd || null) : null;
+function puedeEditar(cd) {
+  if (MQL_IS_ADMIN) return true;
+  if (!MQL_CD || !cd) return false;
+  return cd.toUpperCase() === MQL_CD.toUpperCase();
+}
+
 let EQ=[],live={},filtered=[],allMants=[],currentView='cards',activeId=null;
 const icons={Montacargas:{bg:'rgba(37,99,235,0.15)',color:'#60a5fa',svg:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="12" width="6" height="8" rx="1"/><path d="M8 16h8l2-4H8"/><path d="M4 12V7a2 2 0 012-2h8l2 3"/></svg>'},Apilador:{bg:'rgba(16,185,129,0.12)',color:'#34d399',svg:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M8 6l4-4 4 4"/><rect x="6" y="16" width="12" height="4" rx="1"/></svg>'},Traspaleta:{bg:'rgba(245,158,11,0.12)',color:'#fbbf24',svg:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12h16l2-4H2v4z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M4 12V4"/></svg>'}};
 const stC=s=>s==='Operativo'?'s-op':s==='Inoperativo'?'s-inop':'s-baja';
@@ -361,6 +373,34 @@ async function openModal(id){
   const hl=document.getElementById('hist-lbl'),hc=document.getElementById('m-hist');
   if(em.length>0){hl.style.display='';hc.innerHTML=em.map(m=>`<div class="hist-item"><span class="hist-dot"></span><span class="hist-date">${fD(m.fecha_mantenimiento)}</span><span class="hist-horo">${m.horometro?m.horometro+' hrs':'—'}</span><span class="hist-user">${m.supervisor||'—'}</span></div>`).join('');}
   else{hl.style.display='none';hc.innerHTML='';}
+  // — CD ACCESS CONTROL —
+  const puedeEd = puedeEditar(e.cd);
+  const btnSave   = document.getElementById('btn-save');
+  const tabEstado = document.getElementById('tab-estado');
+  const tabMant   = document.getElementById('tab-mant');
+  const tabHoro   = document.getElementById('tab-horo');
+  let cdAviso = document.getElementById('cd-aviso-flota');
+  if (!cdAviso) {
+    cdAviso = document.createElement('div');
+    cdAviso.id = 'cd-aviso-flota';
+    cdAviso.style.cssText = 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin:10px 0;font-size:13px;font-weight:600;display:none;';
+    const modalBody = document.querySelector('.modal-body') || document.getElementById('overlay');
+    if (modalBody) modalBody.prepend(cdAviso);
+  }
+  if (!puedeEd) {
+    if (btnSave)   { btnSave.disabled = true;   btnSave.style.opacity = '0.4';   btnSave.style.cursor = 'not-allowed'; }
+    if (tabEstado) { tabEstado.style.opacity = '0.4'; tabEstado.style.pointerEvents = 'none'; }
+    if (tabMant)   { tabMant.style.opacity   = '0.4'; tabMant.style.pointerEvents   = 'none'; }
+    if (tabHoro)   { tabHoro.style.opacity   = '0.4'; tabHoro.style.pointerEvents   = 'none'; }
+    cdAviso.textContent = `⚠ Solo puedes editar equipos de ${MQL_CD || 'tu CD'}. Este equipo pertenece a ${e.cd || 'otro CD'}.`;
+    cdAviso.style.display = 'block';
+  } else {
+    if (btnSave)   { btnSave.disabled = false;  btnSave.style.opacity = '';      btnSave.style.cursor = ''; }
+    if (tabEstado) { tabEstado.style.opacity = ''; tabEstado.style.pointerEvents = ''; }
+    if (tabMant)   { tabMant.style.opacity   = ''; tabMant.style.pointerEvents   = ''; }
+    if (tabHoro)   { tabHoro.style.opacity   = ''; tabHoro.style.pointerEvents   = ''; }
+    cdAviso.style.display = 'none';
+  }
   document.getElementById('overlay').classList.add('open');document.body.style.overflow='hidden';
 }
 let nuevoEstado=null;
