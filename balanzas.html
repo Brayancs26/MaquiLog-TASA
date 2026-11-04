@@ -335,11 +335,26 @@ const MQL_USER = _mqlRaw ? JSON.parse(_mqlRaw) : null;
 const MQL_IS_ADMIN = MQL_USER && MQL_USER.rol === 'admin';
 const MQL_CD = MQL_USER ? (MQL_USER.cd || null) : null;
 
+// Mapa CD (mql_usuarios.cd) → planta exacta en tabla balanzas
+const CD_A_PLANTA = {
+  'Malabrigo':     'MALABRIGO',
+  'Chimbote':      'CHIMBOTE',
+  'Samanco':       'SAMANCO',
+  'Supe':          'SUPE',
+  'Vegueta':       'VEGUETA',
+  'Pisco':         'PISCO SUR',
+  'Pucusana':      'PUCUSANA',
+  'Callao':        'CALLAO NORTE',
+  'Matarani':      'MATARANI',
+};
+// Planta que corresponde a este usuario (null = admin ve todo)
+const MQL_PLANTA = (!MQL_IS_ADMIN && MQL_CD) ? (CD_A_PLANTA[MQL_CD] || MQL_CD.toUpperCase()) : null;
+
 // Devuelve true si el usuario puede editar la planta dada
 function puedeEditar(planta) {
   if (MQL_IS_ADMIN) return true;
-  if (!MQL_CD || !planta) return false;
-  return planta.toUpperCase() === MQL_CD.toUpperCase();
+  if (!MQL_PLANTA || !planta) return false;
+  return planta.toUpperCase() === MQL_PLANTA.toUpperCase();
 }
 
 let BZ=[],allCals=[],filtered=[],activeId=null,nuevoEstado=null,modoTab='estado';
@@ -374,6 +389,14 @@ async function cargarDatos(){
     if(e2)throw e2;
     allCals=cals;
     dbStatus(true,'Supabase conectado ✓');
+    // Si no es admin: autoseleccionar y bloquear filtro de planta
+    if (MQL_PLANTA) {
+      const sel = document.getElementById('f-planta');
+      sel.value = MQL_PLANTA;
+      sel.disabled = true;
+      sel.style.opacity = '0.6';
+      sel.style.cursor  = 'not-allowed';
+    }
     renderStats();applyFilters();
   }catch(err){
     dbStatus(false,'Error de conexión');
